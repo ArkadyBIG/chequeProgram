@@ -2,7 +2,7 @@ import typing
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
-import cv2
+from cv2 import cv2
 import json
 
 
@@ -37,14 +37,18 @@ class EditableRow(tk.LabelFrame):
 
         text.bind("<Key>", self.update_size)
         # todo: value is list
-        text.insert('1.0', str(value))
+        text.insert('1.0', json.dumps(value, ensure_ascii=0))
         self.update_size()
 
     def get_result(self):
         if not self.is_correct.get():
             return None
-
-        return self['text'], self.text.get('1.0', 'end')
+        value = self.text.get('1.0', 'end').strip('\n')
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            pass
+        return self['text'], value
 
 
 class Viewer(tk.Tk):
@@ -82,7 +86,7 @@ class Viewer(tk.Tk):
     def pack_left(self, data, correct_data):
         for key, value in data.items():
             correct_value = correct_data.get(key, None)
-            bg = None if correct_value is None else 'green' if correct_value == value else 'red'
+            bg = None if correct_value is None else 'green' if correct_value == json.loads(json.dumps(value)) else 'red'
 
             row = EditableRow(self.left, key, value, bg=bg)
             self.rows.append(row)
@@ -101,8 +105,8 @@ class Viewer(tk.Tk):
             return self._result
 
     def _get_result(self):
-        return {data[0]: data[1].strip('\n') for row in self.rows if
-                (data := row.get_result())}
+        return {data[0]: data[1] for row in self.rows 
+                if (data := row.get_result())}
 
     def destroy(self, *args):
         self._result = self._get_result()
@@ -168,13 +172,19 @@ def _write_data(path, data, new_data):
 
 
 def main():
-    name = '10.jpg'
-    path = 'cheque_parser/cropped/'
+    name = '11.jpg'
+    path = '/home/arkady_big/Repositories/ReciveTextDetector/cropped/'
+    import os
+    from main import  parse
+    names = os.listdir(path)
+    names.sort(key=lambda x: int(x.split('.')[0]))
+    names = (i for i in names if '.json' not in i)
+    # for name in names:
     img = cv2.imread(f'{path}{name}')
-    check_data({1: 2, 'jjjjjjjjj4': "412222", 'name': 'קב ת.ז. 05'},
-               name=name,
-               save_path=path,
-               image=img)
+    check_data(parse(img),
+                save_path=path,
+            name=name,
+            image=img)
 
 
 if __name__ == '__main__':

@@ -54,7 +54,7 @@ class Sample:
 class Classificator:
     def __init__(self, icons_path='icons/'):
         self.examples = []
-        icons_path  = 'cheque_parser/program/icons/' # todo
+        # icons_path  = 'cheque_parser/program/icons/' # todo
         for name in os.listdir(icons_path):
             if name[-5:] == '.json':
                 with open(os.path.join(icons_path, name)) as f:
