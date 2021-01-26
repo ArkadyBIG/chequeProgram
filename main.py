@@ -17,6 +17,7 @@ from cv2 import cv2
 # if len(sys.argv) < 2:
 #     raise NotADirectoryError
 
+#
 # if img is None:
 #     raise NotADirectoryError
 
@@ -29,9 +30,9 @@ def parse(cheque_image):
     bank_data = parse_bank_details(gray_cropped)
     numbers = parse_telephone_numbers(gray_cropped)
     person_data = parse_person_info(gray_cropped)
-    
+
     # cf = Classificator()
-    cf = Classificator(icons_path='/home/arkady_big/Repositories/ReciveTextDetector/chequeProgram/icons')
+    cf = Classificator(icons_path='/home/dima/Documents/Git/cv2/cheque_parser/program/icons')
     return {
         'persons': person_data,
         **numbers,
@@ -40,6 +41,6 @@ def parse(cheque_image):
     }
 
 
-# cheque_path = 'cropped/13.jpg' # sys.argv[1]
+# cheque_path = '/home/dima/Documents/Git/cv2/check3.png' # sys.argv[1]
 # img = cv2.imread(cheque_path)
 # print(parse(img))
