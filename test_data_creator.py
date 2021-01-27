@@ -172,17 +172,17 @@ def _write_data(path, data, new_data):
 
 
 def main():
-    name = '11.jpg'
+    name = '40.jpg'
     path = '/home/arkady_big/Repositories/ReciveTextDetector/cropped/'
     import os
-    from main import  parse
+    from parser import parse
     names = os.listdir(path)
     names.sort(key=lambda x: int(x.split('.')[0]))
-    names = (i for i in names if '.json' not in i)
+    # names = (i for i in names if '.json' not in i)
     # for name in names:
-    img = cv2.imread(f'{path}{name}')
+    img = cv2.imread(f'{path}{name}', 0)
     check_data(parse(img),
-                save_path=path,
+            save_path=path,
             name=name,
             image=img)
 

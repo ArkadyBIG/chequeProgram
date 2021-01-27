@@ -56,7 +56,6 @@ def parse_person_info(image, lang=None, crop_func=None, filter_func=None):
     if data is None:
         # return {}?
         raise Exception('Error while finding string data')
-
     lines = data.splitlines()
     return _parse_info_by_lines(lines)
 

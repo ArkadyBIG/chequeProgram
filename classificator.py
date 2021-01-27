@@ -72,4 +72,4 @@ class Classificator:
             if point > best[0]:
                 best = (point, sample.bank_name)
             # print(sample.bank_name, time.time() - _start)
-        return best
+        return best[1]
