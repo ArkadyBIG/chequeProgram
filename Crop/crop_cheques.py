@@ -128,22 +128,17 @@ def make_threshold(image_gray):
     return after(threshold)
 
 
-def biggest_contour(image_threshold, with_convex=False, cnt_dst_rgb=None):
-    contours, _ = cv2.findContours(image_threshold, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    gray_cnt = np.zeros(image_threshold.shape[:2], np.uint8)
+def biggest_contour(image_threshold, with_convex=False):
+    contours, _ = cv2.findContours(image_threshold,
+                                   cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     contour_sizes = ((cv2.contourArea(contour), contour) for contour in contours)
     cnt = max(contour_sizes, key=lambda _: _[0])[1]
 
     if with_convex:
         cnt = cv2.convexHull(cnt)
-    if cnt_dst_rgb is not None:
-        size = max(cnt_dst_rgb.shape)
-        cv2.drawContours(cnt_dst_rgb, [cnt], 0, (255, 255, 255), size//50)
-        cv2.drawContours(cnt_dst_rgb, contours, -1, (0, 0, 0), size//100)
 
-    cv2.drawContours(gray_cnt, [cnt], 0, 255, 5)
-    return gray_cnt
+    return cnt
 
 
 def rotate_to_horizontal(image):
@@ -183,10 +178,18 @@ class Cropper:
 
         show_cnt = self.img.copy() if show_lines else None
 
+
+        cnt_img = np.zeros(th.shape[:2], np.uint8)
         # cnt_img = biggest_contour(th) # todo: hull or not hull
-        cnt_img = biggest_contour(th, with_convex=True, cnt_dst_rgb=show_cnt)
+        cnt = biggest_contour(th, with_convex=True)
+        cv2.drawContours(cnt_img, [cnt], 0, 255, 5)
+
         lines = get_lines(cnt_img)
-        matrix, size = get_matrix(lines)
+        try:
+            matrix, size = get_matrix(lines)
+        except IndexError:
+            self.show(th, cnt_img, draw_lines(self.img, lines))
+            return self.img
 
         cropped = cv2.warpPerspective(self.img, matrix, size)
         cropped = rotate_to_horizontal(cropped)
@@ -231,24 +234,21 @@ class Cropper:
         plt.axvline(medium, color='k', linestyle='dashed', linewidth=1)
         plt.show()
 
+
+def crop(image):
+    return Cropper(image).crop()
+
+
 if __name__ == "__main__":
-    
 
     # img = img_read('rawChecks/cheMG_20201201_132952.jpg')
     # _x = Cropper(img).crop(show_result=Trueck/check/I, show_histogram=True, show_lines=True)
 
-    path = 'rawChecks/check/check/'
+    path = 'ch/check/check/'
 
     for photo in sorted(os.listdir(path)):
-        img = img_read(path+photo)
+        img = img_read(path + photo)
         # cropped_img = Cropper(img).crop()
         plt.imshow(img)
         plt.show()
-
-
-
-
-# %%
-
-
 
