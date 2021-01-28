@@ -1,7 +1,19 @@
 from cv2 import cv2
 import pytesseract
 import re
+import matplotlib.pyplot as plt
+from pprint import pprint
 
+def draw_and_show_boxes(img, lang='heb', config='--psm 6'):
+    boxes = pytesseract.image_to_boxes(img, lang=lang, config=config)
+    _img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    h = img.shape[0]
+    for b in boxes.splitlines():
+        b = b.split(' ')
+        color = (255, 0, 0) if b[0].isdigit() and b[5] == '0' else (0, 0, 255)
+        _img = cv2.rectangle(_img, (int(b[1]), h - int(b[2])), (int(b[3]), h - int(b[4])), color, 1)
+    plt.imshow(_img)
+    plt.show()
 
 def default_filter(image):
     return image
@@ -115,6 +127,15 @@ def parse_person_info(image, lang='Hebrew', crop_func=None, filter_func=None):
     else:
         img = resize_by_width(image)
         img = default_crop_person_info(img)
+    
+    img = cv2.fastNlMeansDenoising(img, h=15)#, templateWindowSize=5, searchWindowSize=15)    
+    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
+    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
+    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
+    
+    # data  = pytesseract.image_to_data(img, lang='heb', config='--psm 6', output_type='dict')
+    draw_and_show_boxes(img)
+    
     # img = filter_func(img) if filter_func else default_filter(img)
 
     data = pytesseract.image_to_string(img, lang)
@@ -132,6 +153,7 @@ def main():
     for i in range(47):
         img = cv2.imread(f'/home/dima/Documents/Git/cv2/cheque_parser/cropped/{i}.jpg')
         img = default_crop_person_info(img)
+
         data = pytesseract.image_to_string(img, lang='Hebrew')
         # data2 = pytesseract.image_to_data(img, lang='Hebrew', output_type='dict')
         print(str(i) * 5, '\n', data)

@@ -64,12 +64,6 @@ def _find_line_of_numbers(data):
 
     return number_indxs
 
-# def find_most_confident(data1, data2):
-#     _data1 = (t, c for t, c in zip(data1['text'], data1['conf'] if isinstance(c, int))
-#     _data2 = (t, c for t, c in zip(data2['text'], data2['conf'] if isinstance(c, int))
-#     data = []
-
-
 def get_line_of_numbers(img, show_steps, _threshholded=False):
     # plt.imshow(img)
     # plt.show()

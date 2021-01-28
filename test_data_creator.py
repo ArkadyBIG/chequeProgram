@@ -177,9 +177,9 @@ def main():
     raw_path = '/home/arkady_big/Repositories/ReciveTextDetector/rawChecks/check/check/'
     import os
     from parser import parse
-    names = os.listdir(raw_path)
-    # names.sort(key=lambda x: int(x.split('.')[0]))
-    names.sort(key=lambda x: int(x.split('.')[0].split('_')[-1]))
+    names = os.listdir(path)
+    names.sort(key=lambda x: int(x.split('.')[0]))
+    # names.sort(key=lambda x: int(x.split('.')[0].split('_')[-1]))
     names = [i for i in names if '.json' not in i]
     hapoalims = [21, 18, 19, 20, 21, 22, 23, 24, 25, 39] # 18 23 25
     disconts = [5, 6, 7, 8, 45] # 6 8
@@ -191,15 +191,17 @@ def main():
     from Crop.crop_cheques import crop
 
     
-    for i, name in enumerate(names):
+    for i, name in enumerate(names[10::5]):
         if not isinstance(name, str):
+            i = name
             name = str(name) + '.jpg'
-        img = cv2.imread(f'{raw_path}{name}', 0)
-        cropped = crop(img)
-        check_data(parse(cropped),
-                save_path=path,
-                name=str(i) + '.jpg',
-                image=cv2.resize(cropped, None, None, 0.3, 0.3))
+        img = cv2.imread(f'{path}{name}', 0)
+        # cropped = crop(img)
+        data = parse(img, True)
+        # check_data(parse(img, True),
+        #         save_path=path,
+        #         name=str(i) + '.jpg',
+        #         image=cv2.resize(img, None, None, 0.3, 0.3))
 
 
 if __name__ == '__main__':
