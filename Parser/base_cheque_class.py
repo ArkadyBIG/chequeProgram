@@ -1,9 +1,9 @@
 try:
-    from .default_parser_methods.cheque_persone import parse_person_info
+    from .default_parser_methods.parse_person import parse_person_info
     from .default_parser_methods.parse_bank_details import parse_bank_details
     from .default_parser_methods.parse_telephone_number import parse_telephone_numbers
 except ImportError:
-    from default_parser_methods.cheque_persone import parse_person_info
+    from default_parser_methods.parse_person import parse_person_info
     from default_parser_methods.parse_bank_details import parse_bank_details
     from default_parser_methods.parse_telephone_number import parse_telephone_numbers
 

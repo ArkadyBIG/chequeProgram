@@ -80,7 +80,7 @@ def _parse_info_by_lines(lines) -> list:
     lines = list(filter(lambda x: x not in ('', ' '), lines))
     for i, line in enumerate(lines):
         separators = [' ת', ' ח']
-        
+
         for sep in separators:
             *name, person_id = line.split(sep)
             name = sep.join(name)
@@ -109,7 +109,7 @@ def _parse_info_by_lines(lines) -> list:
     return result
 
 
-def parse_person_info(image, lang=None, crop_func=None, filter_func=None):
+def parse_person_info(image, lang='Hebrew', crop_func=None, filter_func=None):
     if crop_func:
         img = crop_func(image)
     else:
@@ -117,14 +117,14 @@ def parse_person_info(image, lang=None, crop_func=None, filter_func=None):
         img = default_crop_person_info(img)
     # img = filter_func(img) if filter_func else default_filter(img)
 
-    data = pytesseract.image_to_string(img, lang or 'Hebrew')
-    full_data = pytesseract.image_to_data(img, lang or 'Hebrew', output_type='dict')
+    data = pytesseract.image_to_string(img, lang)
+    # full_data = pytesseract.image_to_data(img, lang or 'Hebrew', output_type='dict')
 
     lines = data.splitlines()
     result = _parse_info_by_lines(lines)
-    if not result:
-        img = crop_top_center(image)
-        filter_func(img)
+    # if not result:
+    #     img = crop_top_center(image)
+    #     filter_func(img)
     return result
 
 
