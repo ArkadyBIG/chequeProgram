@@ -7,29 +7,46 @@ def default_filter(image):
     return image
 
 
-def default_crop_person_info(image):
+def resize_by_width(image, new_width=900):
     height, width = image.shape[:2]
-    new_width = 900
     scale = new_width / width
 
     img = cv2.resize(image, None, fx=scale, fy=scale)
-    height, width = img.shape[:2]
+    return img
+
+
+def default_crop_person_info(image):
+    height, width = image.shape[:2]
 
     crop_width, crop_height = int(width * 0.45), int(height * 0.25)
-    img = img[:crop_height, -crop_width:]
+    img = image[:crop_height, -crop_width:]
+
+    return img
+
+
+def crop_top_center(image):
+    height, width = image.shape[:2]
+
+    crop_height = int(height * 0.25)
+    crop_x1 = int(width * 0.44)
+    crop_x2 = int(width * 0.66)
+    img = image[:crop_height, crop_x1:crop_x2]
 
     return img
 
 
 def _name_split(name):
-    name = name.split()
-    f_name = name.pop()
-    l_name = ' '.join(name)
+    name = name.replace('\u200f', '')
 
-    return {
-        'firstname': f_name,
-        'lastname': l_name,
-    }
+    # name = name.split()
+    # f_name = name.pop()
+    # l_name = ' '.join(name)
+    #
+    # return {
+    #     'firstname': f_name,
+    #     'lastname': l_name,
+    # }
+    return {'name': name}
 
 
 def _filter(string, whitelist):
@@ -66,13 +83,17 @@ def _parse_info_by_lines(lines) -> list:
         
         for sep in separators:
             *name, person_id = line.split(sep)
+            name = sep.join(name)
+
             if _id := _return_if_2_type(person_id):
                 name = lines[i-1]
-                person_id = _id
-            elif person_id := _is_correct_id(person_id[2:]):
-                name = sep.join(name)
+            elif _id := _is_correct_id(person_id[2:]):
+                pass
+            elif _id := _is_correct_id(name.split(' ', 1)[0]):
+                name = name.split(' ', 1)[-1]
             else:
                 continue
+            person_id = _id
 
             if not name:
                 # todo:  and person_id: look up
@@ -80,7 +101,7 @@ def _parse_info_by_lines(lines) -> list:
 
             info = {
                 'id': person_id,
-                'name': name
+                **_name_split(name)
             }
             result.append(info)
             break
@@ -89,20 +110,21 @@ def _parse_info_by_lines(lines) -> list:
 
 
 def parse_person_info(image, lang=None, crop_func=None, filter_func=None):
-    img = crop_func(image) if crop_func else default_crop_person_info(image)
+    if crop_func:
+        img = crop_func(image)
+    else:
+        img = resize_by_width(image)
+        img = default_crop_person_info(img)
     # img = filter_func(img) if filter_func else default_filter(img)
 
-    if not lang:
-        lang = 'Hebrew'
-
-    data = pytesseract.image_to_string(img, lang)
-    if data is None:
-        # return {}?
-        raise Exception('Error while finding string data')
+    data = pytesseract.image_to_string(img, lang or 'Hebrew')
+    full_data = pytesseract.image_to_data(img, lang or 'Hebrew', output_type='dict')
 
     lines = data.splitlines()
     result = _parse_info_by_lines(lines)
-
+    if not result:
+        img = crop_top_center(image)
+        filter_func(img)
     return result
 
 
@@ -111,8 +133,9 @@ def main():
         img = cv2.imread(f'/home/dima/Documents/Git/cv2/cheque_parser/cropped/{i}.jpg')
         img = default_crop_person_info(img)
         data = pytesseract.image_to_string(img, lang='Hebrew')
-        data2 = pytesseract.image_to_data(img, lang='Hebrew', output_type='dict')
-        print(str(i)*5, '\n', data)
+        # data2 = pytesseract.image_to_data(img, lang='Hebrew', output_type='dict')
+        print(str(i) * 5, '\n', data)
+
 
 if __name__ == '__main__':
     main()
