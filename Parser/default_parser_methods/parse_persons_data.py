@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pytesseract
 import os
 import numpy as np
-
+from pprint import pprint
 #%%
 def combine_in_order(items, max_step=3):
     for i in range(len(items)):
@@ -12,24 +12,6 @@ def combine_in_order(items, max_step=3):
         for _i in range(i, min(len(items), i + max_step), 1):
             slice_.append(items[_i])
             yield slice_
-
-def is_phone_number(text):
-    score = 0
-    delta = abs(sum(i.isdigit() for i in text) - 10)
-    score += 0.6 / (delta / 3 + 1)
-    score += 0.4 * ('-' in text)
-    return score
-
-def phone_score(text_line):
-    score = 80 * max((is_phone_number(''.join(line)) for line in combine_in_order(text_line)), default=0)
-    num_of_digits = sum(i.isdigit() for i in ''.join(text_line)) 
-    if num_of_digits > 6:
-        score += 20 * ('ל' in ''.join(text_line))
-        
-        score += 20 * ('ט' in ''.join(text_line))
-
-    score += 40 * (text_line[-1][0] == '0')
-    return score
 
 def _find_line_of_numbers(data):
     lines = []
@@ -42,22 +24,7 @@ def _find_line_of_numbers(data):
 
     if not lines:
         return None
-    # if len(lines) > 1:
-    #     scores = []
-    #     for i, line in enumerate(lines):
-    #         text_line = [data['text'][i] for i in line]
-    #         score = phone_score(text_line)
-    #         scores.append(score + 20 * i)
-    #     # scores[-1] += 30
-    #     # if max(scores) < 0:
-    #     #     return None
-    #     # lines_score = zip(lines, scores)
-    #     # lines_score = sorted(lines_score, key=lambda x: x[1], reverse=True)
-    #     return [i[0] for i in lines_score]
-    # else:
-    #     number_indxs = [lines[0]]
-    
-    return lines[]
+    return lines
 
 def get_line_of_numbers(img, _threshholded=False):
     data = pytesseract.image_to_data(img, output_type='dict', config='--psm 6', lang='heb')
@@ -65,7 +32,8 @@ def get_line_of_numbers(img, _threshholded=False):
     return number_indxs, data
 
 def get_rectangle(data, word_indxs):
-    left = min(10, data['left'][word_indxs[0]])
+    most_left = min(data['left'][w] for w in word_indxs)
+    left = min(data['left'][w] for w in word_indxs)
     right = max(230, data['left'][word_indxs[-1]] + data['width'][word_indxs[-1]])
     top = sum(data['top'][i] for i in word_indxs) // len(word_indxs)
     bottom = sum(data['height'][i] for i in word_indxs) // len(word_indxs) + top
@@ -75,7 +43,7 @@ def get_rectangle(data, word_indxs):
 def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_width=None):
     delta_width = int((bottom - top) * (increase - 1))
     top = max(0, top - delta_width)
-    left = max(0, left - 5)
+    left = int(max(0, left - (max_shape[1] - left) * 0.3))
     right = min(max_shape[1], right + 5)
     bottom = min(max_shape[0], bottom + delta_width)
     if max_width is not None:
@@ -92,7 +60,7 @@ def crop_into_lines(text_img):
     for number_indxs in  list_number_indxs:
         rect = get_rectangle(data, number_indxs)
         left, top, right, bottom = expand_rectangle(*rect, max_shape=text_img.shape, max_width=25)
-        yield text_img[top :bottom , left :right].copy()
+        yield text_img[top :bottom, left:].copy()
 
 def draw_and_show_boxes(img, lang='heb', config='--psm 6'):
     boxes = pytesseract.image_to_boxes(img, lang=lang, config=config)
@@ -171,13 +139,29 @@ def parse_persons_data(cropped_gray, lang='Hebrew'):#, crop_func=None, filter_fu
     # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
     
     # data  = pytesseract.image_to_data(img, lang='heb', config='--psm 6', output_type='dict')
+    persons_area = cv2.vconcat([persons_area, np.zeros((5, 340), 'uint8')])
+    # persons_area = cv2.hconcat([persons_area, np.ones((90, 5), 'uint8')])
+    # persons_area[30:65, 40:60] = 0
+    # draw_and_show_boxes(persons_area)
     _all = [persons_area]
+    list_lines = []
     for img in crop_into_lines(persons_area):
-        _all += [np.ones((10, 340), 'uint8')]
-        print(img.shape)
-        _r = np.ones([img.shape[0], 340 - img.shape[1]], 'uint8')
-        _all += [cv2.hconcat([img, _r])]
-    draw_and_show_boxes(cv2.vconcat(_all))
+        line = np.zeros((img.shape[0] // 10, img.shape[1]), 'uint8')
+        img = cv2.vconcat([line, img, line])
+        data = pytesseract.image_to_data(img, lang='heb', config='--psm 7', output_type='dict')
+        list_lines.append(data['text'])
+        # img = cv2.hconcat([img, np.ones((img.shape[0], 340 - img.shape[1]), 'uint8')])
+        # _all += [np.ones((10, 340), 'uint8')]
+        # _all += [img]
+        # draw_and_show_boxes(img, config='--psm 7')
+        
+        
+    print(list_lines)
+    # _all = cv2.vconcat(_all)
+    # plt.imshow(persons_area)
+    # plt.show()
+    
+    
     return {}
     # img = filter_func(img) if filter_func else default_filter(img)
 

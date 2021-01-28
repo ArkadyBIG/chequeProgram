@@ -2,7 +2,7 @@ from cv2 import cv2
 import matplotlib.pyplot as plt
 import pytesseract
 import os
-
+import numpy as np
 
 def combine_in_order(items, max_step=3):
     for i in range(len(items)):
@@ -122,6 +122,7 @@ def draw_and_show_boxes(img, lang='heb', config='--psm 6'):
 
 def correct_if_number(text):
     text = ''.join(t for t in text if t.isdigit())
+    num = None
     if 7 < len(text) < 11:
         if len(text) == 8:
             text = '0' + text
@@ -130,16 +131,17 @@ def correct_if_number(text):
                 text = '0' + text
             else:
                 text = '0' + text[1:]
-        return text
+        num = text
     elif len(text) >= 11:
         i = text.find('05')
         if i > 0:
-            return correct_if_number(text[i:])
-
+            num = correct_if_number(text[i:])
+    if num and num[1] != '0':
+        return num
     return None
 
 
-def find_phone_numbers_from_data(data):
+def find_phone_numbers_from_data(data):#054-9400045
     list_numbers = [''.join(i for i in t if i.isdigit()) for t in data['text']]
     _numbers_list = []
     for num in list_numbers:
@@ -164,6 +166,21 @@ def find_phone_numbers_from_data(data):
     if not num:
         num = correct_if_number(text.split('.')[0])
 
+    text = ''.join(data['text']).replace(' ', '').strip('-')
+    if '-' in text:
+        parts = text.split('-')
+        if len(parts[0]) == 3 and len(parts) > 1:
+            num = correct_if_number(parts[0] + parts[1])
+            if num:
+                return [num]
+    text = [t for t, c in zip(data['text'], data['conf']) if int(c) > 0]
+    for part in combine_in_order(text, max_step=2):
+        if len(''.join(text[:text.index(part[0])])) > 3:
+            break
+        num = correct_if_number(''.join(part))
+        if num:
+            return [num]
+    
     return [num] if num else []
 
 
@@ -179,21 +196,34 @@ def find_phone_numbers(number_image, _threshholded=False):
         _, number_image = cv2.threshold(number_image, 120, 255, cv2.THRESH_BINARY)
         return find_phone_numbers(number_image,_threshholded=True)
 
-    return _numbers_list or None, '-' in ''.join(data['text'])
+    text = ''.join(data['text'])
+    # index = text.find('-')
+    # if index > 0 and index != len(text) - 1:
+    _dash = ('-' in text)
+    return _numbers_list or None, _dash
 
 
 def parse_telephone_numbers(cropped_gray):
     img = cv2.resize(cropped_gray, (900, 400))
     number_area = img[50:130, 650:-10]
+    
+    number_area = cv2.fastNlMeansDenoising(number_area, h=13)
+    
+    # draw_and_show_boxes(number_area, config='--psm 6')
+    number_area = cv2.vconcat([number_area, np.ones([5, number_area.shape[1]], 'uint8')])
     number_images = crop_telephon_numbers(number_area)
-
+    
     numbers = []
     dash_in_phone_number = False
     found_numbers_on_previous = False
     for number_image in number_images:
         if number_image is None:
             continue
-
+        black_line = np.ones([number_image.shape[0] // 10, number_image.shape[1]], 'uint8')
+        number_image = cv2.vconcat([number_image, black_line])
+        
+        # draw_and_show_boxes(number_image, config='--psm 7')
+        
         nums, _dash = find_phone_numbers(number_image)
         if nums:
             if len(numbers) == 1 and dash_in_phone_number == _dash:
@@ -208,8 +238,8 @@ def parse_telephone_numbers(cropped_gray):
             break
         else:
             found_numbers_on_previous = False
-        
+    
     return {
-        'first_telephone_number': numbers.pop() if numbers else None,
-        'second_telephone_number': numbers.pop() if numbers else None,
+        'first_telephone_number': numbers.pop(0) if numbers else None,
+        'second_telephone_number': numbers.pop(0) if numbers else None,
     }

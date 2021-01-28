@@ -191,17 +191,18 @@ def main():
     from Crop.crop_cheques import crop
 
     
-    for i, name in enumerate(names[10::5]):
+    for i, name in enumerate([30]):
+        # i *= 5
         if not isinstance(name, str):
             i = name
             name = str(name) + '.jpg'
         img = cv2.imread(f'{path}{name}', 0)
         # cropped = crop(img)
         data = parse(img, True)
-        # check_data(parse(img, True),
-        #         save_path=path,
-        #         name=str(i) + '.jpg',
-        #         image=cv2.resize(img, None, None, 0.3, 0.3))
+        check_data(data,
+                save_path=path,
+                name=str(i) + '.jpg',
+                image=cv2.resize(img, None, None, 0.3, 0.3))
 
 
 if __name__ == '__main__':

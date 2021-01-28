@@ -11,8 +11,8 @@ def digits_score(text):
     return 2 * sum(c.isdigit() for c in text)  # - len(text)
 
 
-def draw_and_show_boxes(img):
-    boxes = pytesseract.image_to_boxes(img, lang='eng')
+def draw_and_show_boxes(img, config='--psm 7'):
+    boxes = pytesseract.image_to_boxes(img, lang='eng', config=config)
     _img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     h = img.shape[0]
     for b in boxes.splitlines():
@@ -298,6 +298,9 @@ def get_best_data(data1, data2):
 
 def parse_bank_details(img, show_steps=False):
     numbers = crop_numbers(img, show_steps)
+    numbers = cv2.fastNlMeansDenoising(numbers, h=15, templateWindowSize=3, searchWindowSize=12)
+    draw_and_show_boxes(numbers, config='-c tessedit_char_whitelist="0123456789 " --psm 7')
+    
     if numbers is None:
         return {
             'cheque_num': None,
