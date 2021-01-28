@@ -63,7 +63,7 @@ def _parse_info_by_lines(lines) -> list:
     lines = list(filter(lambda x: x not in ('', ' '), lines))
     for i, line in enumerate(lines):
         separators = [' ת', ' ח']
-
+        
         for sep in separators:
             *name, person_id = line.split(sep)
             if _id := _return_if_2_type(person_id):

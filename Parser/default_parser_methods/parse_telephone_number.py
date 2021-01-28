@@ -40,31 +40,33 @@ def _find_line_of_numbers(data):
 
     if not lines:
         return None
-    if len(lines) > 1:
-        scores = []
-        for line in lines:
-            text_line = [data['text'][i] for i in line]
-            score = phone_score(text_line)
-            if score < 30:
-                score = -1
-            scores.append(score)
-        if max(scores) < 0:
-            return None
-        number_indxs = lines[scores.index(max(scores))]
-    else:
-        number_indxs = lines[0]
+    # if len(lines) > 1:
+    #     scores = []
+    #     for i, line in enumerate(lines):
+    #         text_line = [data['text'][i] for i in line]
+    #         score = phone_score(text_line)
+    #         scores.append(score + 20 * i)
+    #     # scores[-1] += 30
+    #     # if max(scores) < 0:
+    #     #     return None
+    #     # lines_score = zip(lines, scores)
+    #     # lines_score = sorted(lines_score, key=lambda x: x[1], reverse=True)
+    #     return [i[0] for i in lines_score]
+    # else:
+    #     number_indxs = [lines[0]]
     
-    return number_indxs
+    return lines[::-1]
 
 def get_line_of_numbers(img, _threshholded=False):
+    # draw_and_show_boxes(img)
     data = pytesseract.image_to_data(img, output_type='dict', config='--psm 6', lang='heb')
     number_indxs = _find_line_of_numbers(data)
-    if number_indxs is None:
-        if _threshholded:
-            return None, None
-        _, _th = cv2.threshold(img, img.mean() * 0.9, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C)
-        _th = 255 - _th
-        return get_line_of_numbers(_th, True)
+    # if number_indxs is None:
+    #     if _threshholded:
+    #         return None, None
+    #     _, _th = cv2.threshold(img, img.mean() * 0.9, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C)
+    #     _th = 255 - _th
+    #     return get_line_of_numbers(_th, True)
     return number_indxs, data
 
 def get_rectangle(data, word_indxs):
@@ -89,18 +91,19 @@ def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_widt
     return left, top, right, bottom
 
 def crop_telephon_numbers(telephon_area):
-    draw_and_show_boxes(telephon_area) #remove
-    number_indxs, data = get_line_of_numbers(telephon_area)
-    if not number_indxs:
-        return None
-    
-    rect = get_rectangle(data, number_indxs)
-    left, top, right, bottom = expand_rectangle(*rect, max_shape=telephon_area.shape, max_width=25)
-    # plt.imshow(telephon_area[top :bottom , left :right])
-    # plt.show()
-    return telephon_area[top :bottom , left :right].copy()
+    # cv2.fastNlMeansDenoising(telephon_area, h=4)
+    # draw_and_show_boxes(cv2.fastNlMeansDenoising(telephon_area, h=3)) #remove
+    list_number_indxs, data = get_line_of_numbers(telephon_area)
+    if not list_number_indxs:
+        return [None]
+    for number_indxs in  list_number_indxs:
+        rect = get_rectangle(data, number_indxs)
+        left, top, right, bottom = expand_rectangle(*rect, max_shape=telephon_area.shape, max_width=25)
+        # plt.imshow(telephon_area[top :bottom , left :right])
+        # plt.show()
+        yield telephon_area[top :bottom , left :right].copy()
 
-def draw_and_show_boxes(img, lang='heb', config=''):
+def draw_and_show_boxes(img, lang='heb', config='--psm 6'):
     boxes = pytesseract.image_to_boxes(img, lang=lang, config=config)
     _img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     h = img.shape[0]
@@ -111,43 +114,93 @@ def draw_and_show_boxes(img, lang='heb', config=''):
     plt.imshow(_img)
     plt.show()
 
-def find_phone_numbers(number_image, _threshholded=False):
-    data = pytesseract.image_to_data(number_image, lang='eng', config='--psm 7 -c tessedit_char_whitelist="0123456789 -"', output_type='dict')
-    # print(data[''])
-    text = ''.join(data['text'])
-    numbers = ''.join(t for t in text if t.isdigit())
-    if 8 < len(numbers) < 11:
-        conf = [c for c in data['conf'] if c > 0]
-            
-        numbers = '0' + numbers[1:]
-        return [numbers]#, [sum(conf) / len(conf)]
+def correct_if_number(text):
+    text = ''.join(t for t in text if t.isdigit())
+    if 7 < len(text) < 11:
+        if len(text) == 8:
+            text = '0' + text
+        elif text[0] != '0':
+            if text[0] == '5':
+                text = '0' + text
+            else:
+                text = '0' + text[1:]
+        return text
+    elif len(text) >= 11:
+        if (i := text.find('05')) > 0:
+            return correct_if_number(text[i:])
     
+    
+    return None
+
+def find_phone_numbers_from_data(data):
     list_numbers = [''.join(i for i in t if i.isdigit()) for t in data['text']]
-    conf = [c for c, n in zip(data['conf'], list_numbers) if n]
-    # list_numbers = [n for n in ]
     _numbers_list = []
     for num in list_numbers:
-        if 7 < len(num) < 11:
-            if len(num) == 8:
-                num = '0' + num
-            elif num[0] != '0':
-                num = '0' + num[1:]
-            _numbers_list.append(num)
+        if corrected_num := correct_if_number(num):
+            _numbers_list.append(corrected_num)
+
+    if _numbers_list:
+        return _numbers_list
+    
+    for i, num_part in enumerate(data['text']):
+        if len(num_part) == 3 and num_part[0] == '0' and i < len(data['text']) - 1:
+            if num := correct_if_number(num_part + data['text'][i + 1]):
+                return [num]
+    text = ''.join(t for t, c in zip(data['text'], data['conf']) if int(c) > 0)
+    numbers = ''.join(t for t in text if t.isdigit())
+    if num := correct_if_number(numbers):
+        return [num]
+    
+    if num := correct_if_number(text.split(':')[0]):
+        return [num]
+    if num := correct_if_number(text.split('.')[0]):
+        return [num]
+    return []
+
+def find_phone_numbers(number_image, _threshholded=False):
+    # draw_and_show_boxes(number_image, lang='eng')#, config='--psm 7 -c tessedit_char_whitelist="0123456789 -:."')
+    data = pytesseract.image_to_data(number_image, lang='eng', config='--psm 7 -c tessedit_char_whitelist="0123456789 -:."', output_type='dict')
+
+    _numbers_list = find_phone_numbers_from_data(data)
+    
     if not _threshholded and not _numbers_list:
         _, number_image = cv2.threshold(number_image, 120, 255, cv2.THRESH_BINARY)
         return find_phone_numbers(number_image,_threshholded=True)
-    return _numbers_list or None
+
+    return _numbers_list or None, '-' in ''.join(data['text'])
 
 def parse_telephone_numbers(cropped_gray):
     img = cv2.resize(cropped_gray, (900, 400))
     number_area = img[50:130, 650:-10]
-    number_image = crop_telephon_numbers(number_area)
-    plt.imshow(number_image)
-    plt.show()
-    if number_image is None:
-        return {'numbers': None}
-    return {'numbers': find_phone_numbers(number_image)}
-    
+    number_images = crop_telephon_numbers(number_area)
+
+    numbers = []
+    dash_in_phone_number = False
+    found_numbers_on_previous = False
+    for number_image in number_images:
+        if number_image is None:
+            continue
+        # plt.imshow(number_image)
+        # plt.show()
+        nums, _dash = find_phone_numbers(number_image)
+        if nums:
+            if len(numbers) == 1 and dash_in_phone_number == _dash:
+                numbers += nums
+            elif not numbers:
+                numbers += nums
+                dash_in_phone_number = _dash
+            if len(numbers) == 2:
+                break
+            found_numbers_on_previous = True
+        elif found_numbers_on_previous:
+            break
+        else:
+            found_numbers_on_previous = False
+        
+    return {
+        'first_telephone_number': numbers.pop() if numbers else None,
+        'second_telephone_number': numbers.pop() if numbers else None,
+    }
 
 # #%%
 # names = os.listdir('cropped/')

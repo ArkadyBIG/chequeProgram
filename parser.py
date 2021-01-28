@@ -1,18 +1,24 @@
-# from crop_cheques import Cropper
-# from parse_bank_details import parse_bank_details
-# from parse_telephone_number import parse_telephone_numbers
-# from cheque_persone import parse_person_info
-# from classificator import Classificator
-from Crop import crop_cheques
+import sys
+from cv2 import cv2
+
+from Crop.crop_cheques import crop
+from Parser import cheque_parsers
 from classificator import Classificator
-from Parser.hapoalim_parser import HapoalimParser
 
-icons_path = '/home/arkady_big/Repositories/ReciveTextDetector/icons'
-cl = Classificator(icons_path)
-def parse(img):
-    cheque_type = cl.match(img)
-    return HapoalimParser.parse(img)
+DESCRIPTORS_PATH = '/home/arkady_big/Repositories/ReciveTextDetector/chequeProgram/Descriptors'
+cl = Classificator(DESCRIPTORS_PATH)
 
 
+def parse(cropped):
+    # cropped = crop(img)
+    _type = cl.match(cropped)
+    return cheque_parsers[_type].parse(cropped)
 
 
+if __name__ == '__main__':
+    img_path = sys.argv[1]
+
+    img = cv2.imread(img_path, 0)
+
+
+    print(parse(cropped))

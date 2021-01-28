@@ -1,6 +1,3 @@
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
-# %%
 from cv2 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -169,7 +166,10 @@ class Cropper:
     def __init__(self, image):
         self.img = image
 
-        self.gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        try:
+            self.gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        except cv2.error:
+            self.gray = image
 
     def crop(self, show_result=False, show_histogram=False, show_lines=False):
         imgs_to_show = []
@@ -237,18 +237,3 @@ class Cropper:
 
 def crop(image):
     return Cropper(image).crop()
-
-
-if __name__ == "__main__":
-
-    # img = img_read('rawChecks/cheMG_20201201_132952.jpg')
-    # _x = Cropper(img).crop(show_result=Trueck/check/I, show_histogram=True, show_lines=True)
-
-    path = 'ch/check/check/'
-
-    for photo in sorted(os.listdir(path)):
-        img = img_read(path + photo)
-        # cropped_img = Cropper(img).crop()
-        plt.imshow(img)
-        plt.show()
-

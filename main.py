@@ -21,7 +21,7 @@ def parse(cheque_image):
     person_data = parse_person_info(gray_cropped)
 
     # cf = Classificator()
-    cf = Classificator(icons_path='/home/dima/Documents/Git/cv2/cheque_parser/program/icons')
+    cf = Classificator()
     return {
         'persons': person_data,
         **numbers,
