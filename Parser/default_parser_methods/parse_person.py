@@ -50,8 +50,6 @@ def _name_split(name):
 
 
 def _filter(string, whitelist):
-    # person_id = re.split(r'[ \.:]+', person_id[2:])[-1] or None
-
     return ''.join(c for c in string if c in whitelist)
 
 
@@ -66,10 +64,10 @@ def _is_correct_id(_id):
 def _return_if_2_type(line):
     for c in filter(lambda x: x in line, '\'"'):
         index = line.index(c)
-
-        if _id := _is_correct_id(line[:index]):
-            return _id
-        if _id := _is_correct_id(line[index:]):
+        _id = _is_correct_id(line[:index])
+        if not _id:
+            _id = _is_correct_id(line[index:])
+        if _id:
             return _id
 
     return None
@@ -85,15 +83,28 @@ def _parse_info_by_lines(lines) -> list:
             *name, person_id = line.split(sep)
             name = sep.join(name)
 
-            if _id := _return_if_2_type(person_id):
+            _id = _return_if_2_type(person_id)
+            if _id:
                 name = lines[i-1]
-            elif _id := _is_correct_id(person_id[2:]):
-                pass
-            elif _id := _is_correct_id(name.split(' ', 1)[0]):
-                name = name.split(' ', 1)[-1]
             else:
-                continue
+                _id = _is_correct_id(person_id[2:])
+                if not _id:
+                    _id = _is_correct_id(name.split(' ', 1)[0])
+                    if _id:
+                        name = name.split(' ', 1)[-1]
+                    else:
+                        continue
             person_id = _id
+
+            # if _id := _return_if_2_type(person_id):
+            #     name = lines[i-1]
+            # elif _id := _is_correct_id(person_id[2:]):
+            #     pass
+            # elif _id := _is_correct_id(name.split(' ', 1)[0]):
+            #     name = name.split(' ', 1)[-1]
+            # else:
+            #     continue
+            # person_id = _id
 
             if not name:
                 # todo:  and person_id: look up
