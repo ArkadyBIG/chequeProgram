@@ -139,13 +139,8 @@ def parse_person_info(image, lang='Hebrew', crop_func=None, filter_func=None):
         img = resize_by_width(image)
         img = default_crop_person_info(img)
     
-    img = cv2.fastNlMeansDenoising(img, h=15)#, templateWindowSize=5, searchWindowSize=15)    
-    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
-    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
-    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
     
     # data  = pytesseract.image_to_data(img, lang='heb', config='--psm 6', output_type='dict')
-    draw_and_show_boxes(img)
     
     # img = filter_func(img) if filter_func else default_filter(img)
 
