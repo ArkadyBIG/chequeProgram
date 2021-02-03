@@ -202,15 +202,8 @@ def find_phone_numbers(number_image, _threshholded=False):
     _dash = ('-' in text)
     return _numbers_list or None, _dash
 
-
-def parse_telephone_numbers(cropped_gray):
-    img = cv2.resize(cropped_gray, (900, 400))
-    number_area = img[50:130, 650:-10]
-    
-    number_area = cv2.fastNlMeansDenoising(number_area, h=13)
-    
+def _parse_telephon_area(number_area):
     # draw_and_show_boxes(number_area, config='--psm 6')
-    number_area = cv2.vconcat([number_area, np.ones([5, number_area.shape[1]], 'uint8')])
     number_images = crop_telephon_numbers(number_area)
     
     numbers = []
@@ -238,7 +231,19 @@ def parse_telephone_numbers(cropped_gray):
             break
         else:
             found_numbers_on_previous = False
+    return numbers
+
+def parse_telephone_numbers(cropped_gray):
+    img = cv2.resize(cropped_gray, (900, 400))
+    number_area = img[50:130, 650:-10]
     
+    number_area_denoised = cv2.fastNlMeansDenoising(number_area, h=13)
+    number_area_denoised = cv2.vconcat([number_area_denoised, np.ones([5, number_area.shape[1]], 'uint8')])
+    numbers = _parse_telephon_area(number_area)
+    
+    if not numbers:
+        number_area = cv2.vconcat([number_area, np.ones([5, number_area.shape[1]], 'uint8')])
+        numbers = _parse_telephon_area(number_area)
     return {
         'first_telephone_number': numbers.pop(0) if numbers else None,
         'second_telephone_number': numbers.pop(0) if numbers else None,

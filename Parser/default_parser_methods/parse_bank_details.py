@@ -299,7 +299,7 @@ def get_best_data(data1, data2):
 def parse_bank_details(img, show_steps=False):
     numbers = crop_numbers(img, show_steps)
     numbers = cv2.fastNlMeansDenoising(numbers, h=15, templateWindowSize=3, searchWindowSize=12)
-    draw_and_show_boxes(numbers, config='-c tessedit_char_whitelist="0123456789 " --psm 7')
+    # draw_and_show_boxes(numbers, config='-c tessedit_char_whitelist="0123456789 " --psm 7')
     
     if numbers is None:
         return {

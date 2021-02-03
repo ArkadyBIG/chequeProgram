@@ -191,7 +191,7 @@ def main():
     from Crop.crop_cheques import crop
 
     
-    for i, name in enumerate([30]):
+    for i, name in enumerate([46]):
         # i *= 5
         if not isinstance(name, str):
             i = name
