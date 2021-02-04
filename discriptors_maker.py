@@ -56,6 +56,8 @@ class Sample:
 #       Example: [100, 120, 10, 50]-discount.jpg
 # 2. Run this file(will create descriptors and save them in '/icons')
 # 3. Move early created  descriptors(.json) to '/Descriptors' directory
+# 4. Create file in '/Parser' where create Class as in template /Parser/mizrahi_parser.py(Inherit from BaseCheque)
+# 5. Import just created file in 'Parser/__init__.py' as all other imported.
 
 samples = []
 
