@@ -105,8 +105,9 @@ class Viewer(tk.Tk):
             return self._result
 
     def _get_result(self):
-        return {data[0]: data[1] for row in self.rows 
-                if (data := row.get_result())}
+        data = (r.get_result() for r in self.rows)
+        data = [d[0]: d[1] for d in data if d]
+        return data
 
     def destroy(self, *args):
         self._result = self._get_result()

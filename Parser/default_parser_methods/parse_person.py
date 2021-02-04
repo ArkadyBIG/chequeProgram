@@ -111,15 +111,6 @@ def _parse_info_by_lines(lines) -> list:
                         continue
             person_id = _id
 
-            # if _id := _return_if_2_type(person_id):
-            #     name = lines[i-1]
-            # elif _id := _is_correct_id(person_id[2:]):
-            #     pass
-            # elif _id := _is_correct_id(name.split(' ', 1)[0]):
-            #     name = name.split(' ', 1)[-1]
-            # else:
-            #     continue
-            # person_id = _id
 
             if not name:
                 # todo:  and person_id: look up

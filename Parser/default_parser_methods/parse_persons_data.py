@@ -85,7 +85,8 @@ def correct_if_number(text):
                 text = '0' + text[1:]
         return text
     elif len(text) >= 11:
-        if (i := text.find('05')) > 0:
+        i = text.find('05')
+        if (i) > 0:
             return correct_if_number(text[i:])
     
     
@@ -95,7 +96,8 @@ def find_phone_numbers_from_data(data):
     list_numbers = [''.join(i for i in t if i.isdigit()) for t in data['text']]
     _numbers_list = []
     for num in list_numbers:
-        if corrected_num := correct_if_number(num):
+        corrected_num = correct_if_number(num)
+        if corrected_num:
             _numbers_list.append(corrected_num)
 
     if _numbers_list:
@@ -103,16 +105,20 @@ def find_phone_numbers_from_data(data):
     
     for i, num_part in enumerate(data['text']):
         if len(num_part) == 3 and num_part[0] == '0' and i < len(data['text']) - 1:
-            if num := correct_if_number(num_part + data['text'][i + 1]):
+            num = correct_if_number(num_part + data['text'][i + 1])
+            if num:
                 return [num]
     text = ''.join(t for t, c in zip(data['text'], data['conf']) if int(c) > 0)
     numbers = ''.join(t for t in text if t.isdigit())
-    if num := correct_if_number(numbers):
+    num = correct_if_number(numbers)
+    if num:
         return [num]
     
-    if num := correct_if_number(text.split(':')[0]):
+    num = correct_if_number(text.split(':')[0])
+    if num:
         return [num]
-    if num := correct_if_number(text.split('.')[0]):
+    num = correct_if_number(text.split('.')[0])
+    if num:
         return [num]
     return []
 
