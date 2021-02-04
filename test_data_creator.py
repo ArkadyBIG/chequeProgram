@@ -196,13 +196,13 @@ def main():
         if not isinstance(name, str):
             i = name
             name = str(name) + '.jpg'
-        img = cv2.imread(f'{path}{name}', 0)
-        # cropped = crop(img)
+        img = cv2.imread(f'/home/arkady_big/Repositories/ReciveTextDetector/chequeProgram/cheques_to_test/5.jpg', 0)
+        img = crop(img)
         data = parse(img, True)
         check_data(data,
                 save_path=path,
                 name=str(i) + '.jpg',
-                image=cv2.resize(img, None, None, 0.3, 0.3))
+                image=img)
 
 
 if __name__ == '__main__':

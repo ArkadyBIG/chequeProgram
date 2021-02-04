@@ -66,6 +66,9 @@ def _filter(string, whitelist):
 
 
 def _is_correct_id(_id):
+    if '-' in _id: # to not take phone number
+        return None
+
     _id = _filter(_id, '0123456789')
     if 8 <= len(_id) <= 9:
         return _id
@@ -128,8 +131,24 @@ def _parse_info_by_lines(lines) -> list:
             }
             result.append(info)
             break
-
-    return result
+    
+    if result:
+        return result
+    
+    id = None
+    for line in lines:
+        for word in line.split():
+            _id = _is_correct_id(word)
+            if _id:
+                id = _id
+    if lines:
+        name = lines[0]
+    else:
+        name = None
+    return [{
+        'id': id,
+        'name': name
+    }]
 
 
 def parse_person_info(image, lang='Hebrew', crop_func=None, filter_func=None):
