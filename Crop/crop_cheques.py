@@ -162,6 +162,14 @@ def concatenate_images(*images):
     return method(images)
 
 
+def is_rect_contour(contour, max_error_rate=0.09):
+    rect = np.int0(cv2.boxPoints(cv2.minAreaRect(contour)))
+    x = cv2.contourArea(rect)
+    x = (x - cv2.contourArea(contour))/x
+
+    return x < max_error_rate
+
+
 class Cropper:
     def __init__(self, image):
         self.img = image
@@ -178,10 +186,12 @@ class Cropper:
 
         show_cnt = self.img.copy() if show_lines else None
 
-
         cnt_img = np.zeros(th.shape[:2], np.uint8)
         # cnt_img = biggest_contour(th) # todo: hull or not hull
         cnt = biggest_contour(th, with_convex=True)
+        if not is_rect_contour(cnt):
+            return None
+
         cv2.drawContours(cnt_img, [cnt], 0, 255, 5)
 
         lines = get_lines(cnt_img)
