@@ -92,7 +92,7 @@ def _parse_info_by_lines(lines) -> list:
     result = []
     lines = list(filter(lambda x: x not in ('', ' '), lines))
     for i, line in enumerate(lines):
-        separators = [' ת', ' ח']
+        separators = [' ת', ' ח']  # מ
 
         for sep in separators:
             *name, person_id = line.split(sep)
@@ -100,7 +100,11 @@ def _parse_info_by_lines(lines) -> list:
 
             _id = _return_if_2_type(person_id)
             if _id:
-                name = lines[i-1]
+                while i > 0:
+                    name = lines[i-1]
+                    if set(name).isdisjoint("1234567890"):
+                        break
+                    i -= 1
             else:
                 _id = _is_correct_id(person_id[2:])
                 if not _id:
