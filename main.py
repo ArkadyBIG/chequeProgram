@@ -7,7 +7,7 @@ import cv2
 
 
 path_to_image, path_to_json = sys.argv[1:3]
-# path_to_image, path_to_json = '../ch_photos/40.jpg', '../ch_photos/40.json'
+# path_to_image, path_to_json = '../0.jpg', '../0.jpg.json'
 image = cv2.imread(path_to_image, 0)
 if image is None:
     raise FileNotFoundError
