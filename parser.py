@@ -11,9 +11,12 @@ DESCRIPTORS_PATH = os.path.join(*os.path.split(__file__)[:-1], 'Descriptors')
 cl = Classificator(DESCRIPTORS_PATH)
 
 
-def parse(img, points=None, need_sort=False):
+def parse(img, points=None, need_sort=False, return_cropped=False):
     if points:
         img = crop(img, points, need_sort)
 
     _type = cl.match(img)
-    return cheque_parsers[_type].parse(img)
+    data = cheque_parsers[_type].parse(img)
+    if return_cropped:
+        return data, img
+    return data

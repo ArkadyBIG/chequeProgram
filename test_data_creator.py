@@ -174,37 +174,22 @@ def _write_data(path, data, new_data):
 
 
 def main():
-    name = '20.jpg'
-    path = '/home/arkady_big/Repositories/ReciveTextDetector/cropped/'
-    raw_path = '/home/arkady_big/Repositories/ReciveTextDetector/rawChecks/check/check/'
+    from main import parse_cheque_by_imgpath
     import os
-    from parser import parse
-    names = os.listdir(path)
-    names.sort(key=lambda x: int(x.split('.')[0]))
-    # names.sort(key=lambda x: int(x.split('.')[0].split('_')[-1]))
-    names = [i for i in names if '.json' not in i]
-    hapoalims = [21, 18, 19, 20, 21, 22, 23, 24, 25, 39] # 18 23 25
-    disconts = [5, 6, 7, 8, 45] # 6 8
-    masads = (12, 13, 44) # 44
-    otsearahoyats = [26, 42] # 
-    leumi = [30, 31, 32, 33, 34, 35, 37]
+    cheque_dir = 'test_photos/'
     
-    import numpy as np
-    from Crop.crop_cheques import crop
-
+    cheques_path = os.listdir(cheque_dir)
+    cheques_path = [p for p in cheques_path if p.split('.')[-1] == 'jpg']
+    cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
     
-    for i, name in enumerate([46]):
-        # i *= 5
-        if not isinstance(name, str):
-            i = name
-            name = str(name) + '.jpg'
-        img = cv2.imread(f'/home/arkady_big/Repositories/ReciveTextDetector/chequeProgram/cheques_to_test/5.jpg', 0)
-        img = crop(img)
-        data = parse(img, True)
+    for name in cheques_path:
+        name = cheque_dir + name
+        data, img = parse_cheque_by_imgpath(name, return_cropped=True)
         check_data(data,
-                save_path=path,
-                name=str(i) + '.jpg',
+                name='LOH',
                 image=img)
+    
+    
 
 
 if __name__ == '__main__':

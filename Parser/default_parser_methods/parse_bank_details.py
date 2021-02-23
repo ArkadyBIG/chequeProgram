@@ -110,10 +110,7 @@ def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_widt
     return left, top, right, bottom
 
 
-def crop_numbers(cheque_img, show_steps=False):
-    img = cv2.resize(cheque_img, (900, 400))
-    cheque_details = img[110:160, 20:265]
-
+def crop_numbers(cheque_details, show_steps=False):
     if show_steps:
         draw_and_show_boxes(cheque_details)
 
@@ -126,7 +123,7 @@ def crop_numbers(cheque_img, show_steps=False):
 
     rect = get_rectangle(data, number_indxs)
     left, top, right, bottom = expand_rectangle(
-        *rect, max_shape=img.shape, max_width=25)
+        *rect, max_shape=cheque_details.shape, max_width=25)
 
     if show_steps:
         draw_and_show_rectangle(cheque_details, left, top, right, bottom)
@@ -296,8 +293,14 @@ def get_best_data(data1, data2):
     }
 
 
-def parse_bank_details(img, show_steps=False):
-    numbers = crop_numbers(img, show_steps)
+def parse_bank_details(img, show_steps=0, area_to_search=[110, 160, 20, 265]):
+    # draw_and_show_boxes(img, config='-c tessedit_char_whiteliimst="0123456789 " --psm 7')
+    img = cv2.resize(img, (900, 400))
+    # cheque_details = img[110:160, 20:265]
+    y1, y2, x1, x2 = area_to_search
+    cheque_details = img[y1:y2, x1:x2]
+
+    numbers = crop_numbers(cheque_details, show_steps)
     if numbers is None:
         return {
             'cheque_num': None,
@@ -306,7 +309,7 @@ def parse_bank_details(img, show_steps=False):
         }
 
     numbers = cv2.fastNlMeansDenoising(numbers, h=15, templateWindowSize=3, searchWindowSize=12)
-    # draw_and_show_boxes(numbers, config='-c tessedit_char_whitelist="0123456789 " --psm 7')
+    
 
     middle_slice = get_middle_slice(numbers, 6)
     blank_positions = get_blank_positions(middle_slice)
