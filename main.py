@@ -29,4 +29,5 @@ if __name__ == '__main__':
     path_to_image, path_to_json = sys.argv[1:3]
 
 
-    parse_cheque_by_imgpath(path_to_image, path_to_json)
+    data = parse_cheque_by_imgpath(path_to_image, path_to_json)
+    pprint(data)
