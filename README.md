@@ -19,7 +19,7 @@ pip install -r req.txt
 ## Usage
 
 ```bash
-python3 main.py "data/5.jpg"
+python3 main.py "40.jpg" "40.json"
 ```
 
 ## License

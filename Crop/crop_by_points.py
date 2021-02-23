@@ -6,7 +6,7 @@ def points_distance(p1, p2):
     return int(np.linalg.norm([p1[0]-p2[0], p1[1]-p2[1]]))
 
 
-def crop(image, points):
+def crop(image, points, need_sort):
     inter = np.float32(points)
 
     width = points_distance(inter[0], inter[1])
