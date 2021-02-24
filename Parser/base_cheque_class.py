@@ -33,6 +33,7 @@ class BaseCheque(ABC):
 
     @staticmethod
     def parse_person_info(img):
+        return parse_persons_data(img)
         return parse_person_info(img)
 
     @classmethod

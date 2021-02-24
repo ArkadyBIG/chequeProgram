@@ -1,17 +1,12 @@
-#%%
+
 from cv2 import cv2 
 import matplotlib.pyplot as plt
 import pytesseract
 import os
 import numpy as np
 from pprint import pprint
-#%%
-def combine_in_order(items, max_step=3):
-    for i in range(len(items)):
-        slice_ = []
-        for _i in range(i, min(len(items), i + max_step), 1):
-            slice_.append(items[_i])
-            yield slice_
+from typing import List
+import itertools
 
 def _find_line_of_numbers(data):
     lines = []
@@ -23,27 +18,53 @@ def _find_line_of_numbers(data):
                 lines.append([i])
 
     if not lines:
-        return None
+        return []
     return lines
 
-def get_line_of_numbers(img, _threshholded=False):
+def get_line_of_numbers(img):
     data = pytesseract.image_to_data(img, output_type='dict', config='--psm 6', lang='heb')
     number_indxs = _find_line_of_numbers(data)
-    return number_indxs, data
+    
+    right_block = []
+    left_block = []
+    
+    for line in number_indxs:
+        max_gap = 0
+        right_block.append([])
+        left_block.append([])
+        if len(line) == 1:
+            right_block[-1].append(line[0])
+            continue
+        # for _next, prev in zip(line, line[1:]):
+        prev_x = data['left'][line[0]] + data['width'][line[0]]
+        for i, index in enumerate(line):
+            pos_x = data['left'][index] + data['width'][index]
+            gap = prev_x - pos_x
+            if gap > 200:
+                # print('gap is too big', gap)
+                break
+            right_block[-1].append(index)
+            prev_x = data['left'][index]
+        
+        left_block[-1].extend(line[i:])
+        
+        
+    
+    return right_block, left_block, data
 
-def get_rectangle(data, word_indxs):
+def get_rectangle(data, word_indxs, max_right=230):
     most_left = min(data['left'][w] for w in word_indxs)
     left = min(data['left'][w] for w in word_indxs)
-    right = max(230, data['left'][word_indxs[-1]] + data['width'][word_indxs[-1]])
+    right = max(max_right, data['left'][word_indxs[-1]] + data['width'][word_indxs[-1]])
     top = sum(data['top'][i] for i in word_indxs) // len(word_indxs)
     bottom = sum(data['height'][i] for i in word_indxs) // len(word_indxs) + top
 
     return left, top, right, bottom
 
-def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_width=None):
+def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_width=None, max_left=0):
     delta_width = int((bottom - top) * (increase - 1))
     top = max(0, top - delta_width)
-    left = int(max(0, left - (max_shape[1] - left) * 0.3))
+    left = int(max(0, min(max_left, left - (max_shape[1] - left) * 0.3)))
     right = min(max_shape[1], right + 5)
     bottom = min(max_shape[0], bottom + delta_width)
     if max_width is not None:
@@ -53,14 +74,28 @@ def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_widt
         
     return left, top, right, bottom
 
-def crop_into_lines(text_img):
-    list_number_indxs, data = get_line_of_numbers(text_img)
-    if not list_number_indxs:
+def get_text_lines(text_img):
+    right_block, left_block, data = get_line_of_numbers(text_img)
+    if not right_block:
         return []
-    for number_indxs in  list_number_indxs:
+    
+    right_img_slices = []
+    for number_indxs in  right_block:
         rect = get_rectangle(data, number_indxs)
+        left, top, right, bottom = expand_rectangle(*rect, max_shape=text_img.shape, max_width=25, max_left=350)
+        right_img_slices.append(text_img[top :bottom, left:])
+    
+    left_img_slices = []
+    for number_indxs in  left_block:
+        if not number_indxs:
+            continue
+        rect = get_rectangle(data, number_indxs, max_right=0)
         left, top, right, bottom = expand_rectangle(*rect, max_shape=text_img.shape, max_width=25)
-        yield text_img[top :bottom, left:].copy()
+        # draw_and_show_boxes(text_img[top :bottom, left:right])
+        left_img_slices.append(text_img[top :bottom, left:right])
+        
+    return right_img_slices#, left_img_slices
+    
 
 def draw_and_show_boxes(img, lang='heb', config='--psm 6'):
     boxes = pytesseract.image_to_boxes(img, lang=lang, config=config)
@@ -73,120 +108,185 @@ def draw_and_show_boxes(img, lang='heb', config='--psm 6'):
     plt.imshow(_img)
     plt.show()
 
-def correct_if_number(text):
-    text = ''.join(t for t in text if t.isdigit())
-    if 7 < len(text) < 11:
-        if len(text) == 8:
-            text = '0' + text
-        elif text[0] != '0':
-            if text[0] == '5':
-                text = '0' + text
-            else:
-                text = '0' + text[1:]
-        return text
-    elif len(text) >= 11:
-        i = text.find('05')
-        if (i) > 0:
-            return correct_if_number(text[i:])
+def remove_junks(data, max_char_width=15, min_conf=1):
+    clear_data = {
+        'text' : [],
+        'width': [],
+        'conf' : [],
+        'left' : []
+    }
+    data = [data['text'], data['width'], data['conf'], data['left']]
+    for text, width, conf, left in zip(*data):
+        if not text \
+            or (width / len(text) > max_char_width and len(text) < 5 and text != '1' and text != 'תז')\
+            or (conf < min_conf and len(text) < 5):
+                continue
+        clear_data['text' ].append(text)
+        clear_data['width'].append(width)
+        clear_data['conf' ].append(conf)
+        clear_data['left' ].append(left)
+    return clear_data
+            
+            
+            
+def split_lines_to_data(persons_area, add_black_line=False, config=''):
+    if add_black_line:
+        persons_area = cv2.vconcat([persons_area, np.zeros((5, persons_area.shape[1]), 'uint8')])
+
+    # draw_and_show_boxes(persons_area)
+    
+    lines = []
+    
+    for img in get_text_lines(persons_area):
+        data = pytesseract.image_to_data(img, lang='heb', config='--psm 7', output_type='dict')
+        
+        # draw_and_show_boxes(img)
+        
+        cdata = remove_junks(data)
+        # print(data['text'], cdata['text'])
+        lines.append(cdata)
+        
+    return lines
+
+def strip_not_digits(word):
+    if not word:
+        return ''
+
+    for i, c in enumerate(word):
+        if c.isdigit():
+           break 
+    word = word[i:]
+    for i, c in enumerate(word[::-1]):
+        if c.isdigit():
+           break 
+    return word[:(-i or None)]
+
+    
+
+def find_id_in_word(word):
+    numbers = strip_not_digits(word)
+    if not all(i.isdigit() for i in numbers):
+        return None
+        
+    if 10 >= len(numbers) >= 8:
+        return numbers[:9]
+    return None 
+
+def find_ids_left_from_TZ(textlines):
+    ids = []
+    for line in textlines:
+        line = line['text']
+        for i, word in enumerate(line):
+            if not set(word).isdisjoint('ז1תה'):
+                if 1 <= len(word) < 5:
+                    if i + 1 < len(line):
+                        _id = find_id_in_word(line[i + 1])
+                        ids.append(_id)
+                    if i + 2 < len(line):
+                        ids.append(find_id_in_word(line[i + 2]))
+                    if i - 1 >= 0:
+                        ids.append(find_id_in_word(line[i - 1]))
+                elif '1' not in word[:3] and 'ש' not in word:
+                    right = ''
+                    if 'ת' in word:
+                        left, right = word.split('ת')[:2]
+                    elif 'ז' in word:
+                        left, right = word.split('ז')[:2]
+                    elif 'ה' in word:
+                        left, right = word.split('ה')[:2]
+                    ids.append(find_id_in_word(right))
+                    
+    return [i for i in set(ids) if i][:2]
+                        
+                    
+def find_ids_alone_on_line(textlines):
+    ids = []
+    for line in textlines[:3]:
+        for word in line['text']:
+            ids.append(find_id_in_word(word))
+    return list(filter(None, ids))[:2]
     
     
-    return None
 
-def find_phone_numbers_from_data(data):
-    list_numbers = [''.join(i for i in t if i.isdigit()) for t in data['text']]
-    _numbers_list = []
-    for num in list_numbers:
-        corrected_num = correct_if_number(num)
-        if corrected_num:
-            _numbers_list.append(corrected_num)
+def find_ids_in_textlines(textlines: List[List[str]]):
+    ids = find_ids_left_from_TZ(textlines)
+    if not ids:
+        ids = find_ids_alone_on_line(textlines)
+    return ids
 
-    if _numbers_list:
-        return _numbers_list
+def remove_not_letters(_str):
+    return _str.replace('=', '').replace('/', '').replace('|', '').replace(',', '').replace('ת.ז.', '').replace('.', '')
     
-    for i, num_part in enumerate(data['text']):
-        if len(num_part) == 3 and num_part[0] == '0' and i < len(data['text']) - 1:
-            num = correct_if_number(num_part + data['text'][i + 1])
-            if num:
-                return [num]
-    text = ''.join(t for t, c in zip(data['text'], data['conf']) if int(c) > 0)
-    numbers = ''.join(t for t in text if t.isdigit())
-    num = correct_if_number(numbers)
-    if num:
-        return [num]
+
+def find_names_right_from_TZ(textlines):
+    names = []
+    for line_index, line in enumerate(textlines):
+        line = line['text']
+        names_on_line = []
+        for i, word in enumerate(line):
+            if not set(word).isdisjoint('ז1תה'):
+                if 1 <= sum(not i.isdigit() for i in set(word)) < 5:
+                    name = ' '.join(line[:i])
+                    
+                    numbers = ''.join(i for i in ''.join(line[i:]) if i.isdigit())
+                    
+                    if not any(i.isdigit() for i in name) and \
+                        (len(numbers) > 7 or sum(i.isdigit() for i in word) > 7):
+                        names_on_line.append(name)
+        if line_index > 0 and names[-1] and not names_on_line:
+            break 
+        names.append(max(names_on_line, default=[], key=len))
+    return list({remove_not_letters(i) for i in names if i})[:2]
+
+def find_names_alone_on_line(textlines):
+    names = []
+    for line in textlines[:-2]:
+        text = ' '.join(line['text'])
+        if not any(i.isdigit() for i in text):
+            names.append(text)
+    return [remove_not_letters(n) for n in names[:2]]
+
+def find_names_in_textlines(textlines):
+    text = ''.join(sum((i['text'] for i in textlines), []))
     
-    num = correct_if_number(text.split(':')[0])
-    if num:
-        return [num]
-    num = correct_if_number(text.split('.')[0])
-    if num:
-        return [num]
-    return []
-
-def find_phone_numbers(number_image, _threshholded=False):
-    # draw_and_show_boxes(number_image, lang='eng')#, config='--psm 7 -c tessedit_char_whitelist="0123456789 -:."')
-    data = pytesseract.image_to_data(number_image, lang='eng', config='--psm 7 -c tessedit_char_whitelist="0123456789 -:."', output_type='dict')
-
-    _numbers_list = find_phone_numbers_from_data(data)
+    look_for_TZ_first = \
+        ('ת.ז.' in text or '.ז.' in text or 'תז.' in text or 'ת.ז' in text or 'תז ' in text or ' תז' in text or 'ת.1' in text or 'ת"ז' in text)
     
-    if not _threshholded and not _numbers_list:
-        _, number_image = cv2.threshold(number_image, 120, 255, cv2.THRESH_BINARY)
-        return find_phone_numbers(number_image,_threshholded=True)
+    queue = [find_names_alone_on_line, find_names_right_from_TZ]
+    
+    names = queue[look_for_TZ_first](textlines)
+    if not names:
+        names = queue[not look_for_TZ_first](textlines)
+    # print('names:', names)
+    return names
+    
 
-    return _numbers_list or None, '-' in ''.join(data['text'])
-
-def parse_persons_data(cropped_gray, lang='Hebrew'):#, crop_func=None, filter_func=None):
+def parse_persons_data(cropped_gray, lang='Hebrew'):
     img = cv2.resize(cropped_gray, (900, 400))
     
-    persons_area = img[10:100, 550:-10]
+    persons_area = img[10:100, 400:-10]
     
-    # persons_area = cv2.fastNlMeansDenoising(persons_area, h=15)#, templateWindowSize=5, searchWindowSize=15)    
-    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
-    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
-    # img = cv2.fastNlMeansDenoising(img, h=7, templateWindowSize=5, searchWindowSize=15)    
-    
-    # data  = pytesseract.image_to_data(img, lang='heb', config='--psm 6', output_type='dict')
-    persons_area = cv2.vconcat([persons_area, np.zeros((5, 340), 'uint8')])
-    # persons_area = cv2.hconcat([persons_area, np.ones((90, 5), 'uint8')])
-    # persons_area[30:65, 40:60] = 0
-    # draw_and_show_boxes(persons_area)
-    _all = [persons_area]
-    list_lines = []
-    for img in crop_into_lines(persons_area):
-        line = np.zeros((img.shape[0] // 10, img.shape[1]), 'uint8')
-        img = cv2.vconcat([line, img, line])
-        data = pytesseract.image_to_data(img, lang='heb', config='--psm 7', output_type='dict')
-        list_lines.append(data['text'])
-        # img = cv2.hconcat([img, np.ones((img.shape[0], 340 - img.shape[1]), 'uint8')])
-        # _all += [np.ones((10, 340), 'uint8')]
-        # _all += [img]
-        # draw_and_show_boxes(img, config='--psm 7')
-        
-        
-    print(list_lines)
-    # _all = cv2.vconcat(_all)
-    # plt.imshow(persons_area)
-    # plt.show()
+    # persons_area = cv2.fastNlMeansDenoising(persons_area, h=10)#, templateWindowSize=5, searchWindowSize=15)    
     
     
-    return {}
-    # img = filter_func(img) if filter_func else default_filter(img)
-
-    data = pytesseract.image_to_string(img, lang)
-    # full_data = pytesseract.image_to_data(img, lang or 'Hebrew', output_type='dict')
-
-    lines = data.splitlines()
-    result = _parse_info_by_lines(lines)
-    # if not result:
-    #     img = crop_top_center(image)
-    #     filter_func(img)
-    return result
-
-        
-
-
-
-
-
-
-
-
+    textlines = split_lines_to_data(persons_area, add_black_line=True)
+    persons_id = find_ids_in_textlines(textlines)
+    persons_names = find_names_in_textlines(textlines)
+    
+    if not persons_id:
+        textlines = split_lines_to_data(persons_area, add_black_line=False)
+        persons_id = find_ids_in_textlines(textlines)
+        persons_names = max(find_names_in_textlines(textlines), persons_names, key=lambda x: len(''.join(x)))
+    
+    if not persons_id:
+        textlines = split_lines_to_data(persons_area[:60, :250], add_black_line=True, config='')
+        persons_id = find_ids_in_textlines(textlines)
+    
+    data = []
+    for _id, name in itertools.zip_longest(persons_id, persons_names):
+        data.append({
+            'id'   : _id,
+            'name' : name
+        })
+    
+    return data

@@ -175,15 +175,24 @@ def _write_data(path, data, new_data):
 
 def main():
     from main import parse_cheque_by_imgpath
-    import os
-    cheque_dir = 'test_photos/'
-    
-    cheques_path = os.listdir(cheque_dir)
-    cheques_path = [p for p in cheques_path if p.split('.')[-1] == 'jpg']
-    cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
-    
-    for name in cheques_path:
-        name = cheque_dir + name
+    _ids_in_middle  = [1, 26, 44]
+    if 1:
+        import os
+        cheque_dir = 'test_photos/'
+        # cheque_dir = 'cheques_to_test_3/'
+        
+        cheques_path = os.listdir(cheque_dir)
+        cheques_path = [p for p in cheques_path if p.split('.')[-1] == 'jpg']
+        cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
+        # cheques_path = [cheques_path[i] for i in _ids_in_middle]
+        for name in cheques_path[40:]:
+            name = cheque_dir + name
+            data, img = parse_cheque_by_imgpath(name, return_cropped=True)
+            check_data(data,
+                    name=str(name),
+                    image=img)
+    else:
+        name = 'cheques_to_test2/0.jpg'
         data, img = parse_cheque_by_imgpath(name, return_cropped=True)
         check_data(data,
                 name='LOH',
