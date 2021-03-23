@@ -19,13 +19,14 @@ def parse_cheque_by_imgpath(imgpath, jsonpath=None, return_cropped=False):
             points = [points['tl'], points['tr'], points['bl'], points['br']]
     except FileNotFoundError:
         points = None
-        
+
     return parse(image, points,
-                need_sort=False, 
-                return_cropped=return_cropped)
+                 need_sort=False,
+                 return_cropped=return_cropped)
 
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
+    args = sys.argv[1:3]
     path_to_image, path_to_json = sys.argv[1:3]
 
 
