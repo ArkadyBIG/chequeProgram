@@ -33,8 +33,9 @@ class BaseCheque(ABC):
 
     @staticmethod
     def parse_person_info(img):
+        # person_data = parse_persons_data(img)
+        # print(parse_persons_data(img))
         return parse_persons_data(img)
-        return parse_person_info(img)
 
     @classmethod
     def _parse(cls, gray_img, match_telephones_with_persons):
@@ -45,26 +46,19 @@ class BaseCheque(ABC):
         # if match_telephones_with_persons \
         #     and len(person_data) == 1:
         #     telephones['second_telephone_number'] = None
-
-        first_person_id, first_person_name = None, None
-        second_person_id, second_person_name = None, None
-        if len(person_data) > 0:
-            first_person_id = person_data[0]['id']
-            first_person_name = person_data[0]['name']
-        if len(person_data) > 1:
-            second_person_id = person_data[1]['id']
-            second_person_name = person_data[1]['name']
-
         return {
-            **telephones, 
+            **telephones,
             **bank_data,
-            'first_person_id': first_person_id,
-            'second_person_id': second_person_id,
-            'first_person_name': first_person_name and first_person_name[::-1],
-            'second_person_name': second_person_name and second_person_name[::-1],
+            **person_data,
+            # 'first_person_id': first_person_id,
+            # 'second_person_id': second_person_id,
+            # 'first_person_name': first_person_name and first_person_name[::-1],
+            # 'second_person_name': second_person_name and second_person_name[::-1],
             'type_number': cls.type_number(),
             'type_name': cls.type_name()
         }
+
+
         
     @classmethod
     def parse(cls, gray_img):

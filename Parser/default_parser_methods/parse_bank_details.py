@@ -232,7 +232,7 @@ def parse_cheque_details_on_numbers(numbers, lang='heb'):
     data = pytesseract.image_to_data(numbers,
                                      lang=lang,
                                      config='-c tessedit_char_whitelist="0123456789 " --psm 7',
-                                     output_type='dict')  # todo
+                                     output_type='dict')
     text = data['text']
     conf = data['conf']
     text = [''.join(i for i in t if i.isdigit()) for t in text]
@@ -240,7 +240,7 @@ def parse_cheque_details_on_numbers(numbers, lang='heb'):
     text = [t for t in text if t]
     if len(text) == 3:
         cheque_num, cheque_conf = text[0], conf[0]
-        branch_num, branch_conf = text[1][2:], conf[1]
+        branch_num, branch_conf = text[1][2:][:3], conf[1]
         account_num, account_conf = text[2], conf[2]
     elif len(text) == 4:
         if len(text[0]) >= 7:
@@ -248,7 +248,7 @@ def parse_cheque_details_on_numbers(numbers, lang='heb'):
         else:
             cheque_num = text[0] + text[1]
             cheque_conf = (conf[0] + conf[1]) / 2
-        branch_num, branch_conf = text[2], conf[2]
+        branch_num, branch_conf = text[2][:3], conf[2]
         account_num, account_conf = text[3], conf[3]
     else:
         branch_num, branch_conf = None, -1
@@ -262,6 +262,7 @@ def parse_cheque_details_on_numbers(numbers, lang='heb'):
         'branch_conf': branch_conf,
         'account_conf': account_conf
     }
+
 
 
 def get_best_data(data1, data2):
