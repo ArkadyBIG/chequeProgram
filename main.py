@@ -9,6 +9,7 @@ def parse_cheque_by_imgpath(imgpath, jsonpath=None, return_cropped=False):
     if jsonpath is None:
         jsonpath = imgpath + '.json'
     image = cv2.imread(imgpath, 0)
+
     if image is None:
         raise FileNotFoundError
     # path_to_image, path_to_json = '../ch_photos/40.jpg', '../ch_photos/40.json'

@@ -26,11 +26,12 @@ def textline_as_string(textline):
     return ''.join(sum((i['text'] for i in textline), []))
 
 def get_line_of_numbers(img):
+    #config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
 
     # draw_and_show_boxes(img, 'eng+heb', config)
     # cv2.waitKey()
     # cv2.destroyAllWindows()
-    config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
+    config = '--psm 6 '
     data = pytesseract.image_to_data(img, output_type='dict', config= config, lang='heb')
 
     number_indxs = _find_line_of_numbers(data)
@@ -128,7 +129,13 @@ def remove_junks(data, max_char_width=15, min_conf=1):
         if not text \
             or (width / len(text) > max_char_width and len(text) < 5 and text != '1' and text != 'תז')\
             or (conf < min_conf and len(text) < 5):
+            if not(len(text) >=4 and conf >= 0):
                 continue
+            # else:
+            #     clear_data['text'].append(text)
+            #     clear_data['width'].append(width)
+            #     clear_data['conf'].append(conf)
+            #     clear_data['left'].append(left)
         clear_data['text' ].append(text)
         clear_data['width'].append(width)
         clear_data['conf' ].append(conf)
@@ -137,13 +144,14 @@ def remove_junks(data, max_char_width=15, min_conf=1):
             
             
             
-def split_lines_to_data(persons_area, add_black_line=False, config='', list_of_image_lines=None):
+def split_lines_to_data(persons_area, add_black_line=False, config=''):
     if add_black_line:
         persons_area = cv2.vconcat([persons_area, np.zeros((5, persons_area.shape[1]), 'uint8')])
 
     # draw_and_show_boxes(persons_area)
     
     lines = []
+
 
     # draw_and_show_boxes(persons_area, 'eng+heb', config)
     # cv2.waitKey()
@@ -152,14 +160,15 @@ def split_lines_to_data(persons_area, add_black_line=False, config='', list_of_i
     # draw_and_show_boxes(get_text_lines(persons_area)[2], config=config)
     # cv2.waitKey()
     # cv2.destroyAllWindows()
-    # if list_of_image_lines is None:
-    #     list_of_image_lines = 
+
     config = '--psm 7 hebchars'
     list_of_image_lines = get_text_lines(persons_area)
     for img in list_of_image_lines:
+        # draw_and_show_boxes(img, 'eng+heb', config)
+        # cv2.waitKey()
         # _start = time()
         data = pytesseract.image_to_data(img, lang='eng+heb', config=config, output_type='dict')
-        # print(time() - _start)
+        #print(data)
         cdata = remove_junks(data)
         # print(data['text'], cdata['text'])
         lines.append(cdata)
@@ -264,6 +273,15 @@ def find_names_alone_on_line(textlines):
             names.append(text)
     return [remove_not_letters(n) for n in names[:2]]
 
+
+# def find_name_with_TZ(textlines):
+#     if names_to_right_from_TZ:
+#         get_name_surname_when_TZ_on_same_line(textlines)
+#     else:
+#         get_name_surname_when_TZ_on_next_line(textlines)
+#
+
+
 def find_names_in_textlines(textlines):
     text = ''.join(sum((i['text'] for i in textlines), []))
     
@@ -286,85 +304,176 @@ def preprocessed(image):
 
     return out_gray
 
+def get_name_surname_when_TZ_on_same_line(textlines, num_of_persons):
+    names = []
+    for line_index, line in enumerate(textlines):
+        line = line['text']
+        names_on_line = []
+        for i, word in enumerate(line):
+            if not set(word).isdisjoint('ז1תה'):
+                if 1 <= sum(not i.isdigit() for i in set(word)) < 5:
+                    name = ' '.join(line[:i])
+
+                    if not any(i.isdigit() for i in name):
+                        names_on_line.append(name)
+        if line_index > 0 and names[-1] and not names_on_line:
+            break
+        names.append(max(names_on_line, default=[], key=len))
+    person_name_list = list(remove_not_letters(i) for i in names if i)
+    if len(person_name_list) == 0:
+        first_person_name = None
+        first_person_surname = None
+        second_person_name = None
+        second_person_surname = None
+
+    if num_of_persons == 1:
+        first_person_list = person_name_list[0].split(' ')
+        first_person_name = ' '.join(first_person_list[1:])
+        first_person_surname = first_person_list[0]
+        second_person_name = None
+        second_person_surname = None
 
 
+    elif num_of_persons == 2:
+        if len(person_name_list) >= 2:
+            first_person_list = person_name_list[0].split(' ')
+            first_person_name = ' '.join(first_person_list[1:])
+            first_person_surname = first_person_list[0]
+            second_person_list = person_name_list[1].split(' ')
+            second_person_name = ' '.join(second_person_list[1:])
+            second_person_surname = second_person_list[0]
+        else:
+            first_person_list = person_name_list[0].split(' ')
+            first_person_name = ' '.join(first_person_list[1:])
+            first_person_surname = first_person_list[0]
+            second_person_name = None
+            second_person_surname = None
+    print(first_person_name, first_person_surname), (second_person_name, second_person_surname)
+    return (first_person_name, first_person_surname), (second_person_name, second_person_surname)
+
+
+def two_times_surname(person_name_list):
+
+    person_name_set = set(person_name_list)
+
+    if len(person_name_set) == len(person_name_list):
+        return None
+    for i, el in enumerate(person_name_list):
+        if el in person_name_set:
+            person_name_set.remove(el)
+        else:
+            return i
+
+
+def get_name_surname_when_TZ_on_next_line(textlines, num_of_persons):
+    names = []
+    for line in textlines[:-2]:
+        text = ' '.join(line['text'])
+        if not any(i.isdigit() for i in text):
+            names.append(text)
+    if not [remove_not_letters(n) for n in names[:2]]:
+        first_person_name = None
+        first_person_surname = None
+        second_person_name = None
+        second_person_surname = None
+    else:
+        person_name_list = [remove_not_letters(n) for n in names[:2]][0].split(' ')
+        if num_of_persons == 1:
+            first_person_name = ' '.join(person_name_list[1:])
+            first_person_surname = person_name_list[0]
+            second_person_name = None
+            second_person_surname = None
+        #
+        if num_of_persons == 2:
+            indx =  two_times_surname(person_name_list)
+            if indx:
+                first_person_list = person_name_list[:indx]
+                first_person_name = ' '.join(first_person_list[1:])
+                first_person_surname = first_person_list[0]
+                second_person_list = person_name_list[indx:]
+                second_person_name = ' '.join(second_person_list[1:])
+                second_person_surname = second_person_list[0]
+
+            else:
+                first_person_surname = person_name_list[0]
+                second_person_surname = person_name_list[0]
+                first_and_second_names = person_name_list[1:]
+
+                first_person_name = ' '.join(first_and_second_names[:len(first_and_second_names)//2])
+                second_person_name = ' '.join(first_and_second_names[len(first_and_second_names)//2:])
+    #
+    # print('FN: ', first_person_name)
+    # print('FS: ', first_person_surname)
+    # print('SN: ', second_person_name)
+    # print('SS: ', second_person_surname)
+    return (first_person_name, first_person_surname), (second_person_name, second_person_surname)
+
+
+
+
+
+
+
+
+
+    # print(num_of_persons)
+    # print(person_name_list)
+    #     # elif len(person_name_list)
+    # print(first_person_name)
+    # print(first_person_surname)
+    # print(second_person_name)
+    # print(second_person_surname)
+    # print(num_of_persons)
 def extract_text(img):
     from time import time
     _start = time()
-    
+
     raw_text = split_lines_to_data(img, add_black_line=False)
     text_with_black_lines = split_lines_to_data(img, add_black_line=True)
     text_with_preprocessing = split_lines_to_data(preprocessed(img), add_black_line=False, config='')
-    print(time() - _start)
+
     variants = [raw_text, text_with_black_lines, text_with_preprocessing]
 
     text_with_most_characters = max(variants, key=lambda x: len(textline_as_string(x)))
-    print(raw_text[1]['text'])
-    print(text_with_black_lines[1]['text'])
-    print(text_with_preprocessing[1]['text'])
-    
-    print(textline_as_string(raw_text))
-    print(textline_as_string(text_with_black_lines))
-    print(textline_as_string(text_with_preprocessing))
-    
-    print(variants.index(text_with_most_characters))
     return text_with_most_characters
-    
-    
-def parse_persons_data(cropped_gray, lang='Hebrew'):
-    # img = cv2.resize(cropped_gray, (600, 267))
+
+
+def  parse_persons_data(cropped_gray, lang='Hebrew'):
     img = cv2.resize(cropped_gray, (900, 400))
     
     persons_area = img[10:100, 400:-10]
-    # persons_area = img[7:67, 267:-7]
-    # cv2.imwrite('test_img.jpeg', persons_area)
-    #cv2.imshow('pjl;', persons_area)
-    #cv2.waitKey()
-    # no_eng_config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
-    # persons_area = cv2.fastNlMeansDenoising(persons_area, h=10)#, templateWindowSize=5, searchWindowSize=15)
-    # draw_and_show_boxes(persons_area, 'eng+heb', no_eng_config)
+    # draw_and_show_boxes(persons_area)
     # cv2.waitKey()
-    # cv2.destroyAllWindows()
-    extract_text(persons_area)
-    
-    textlines = split_lines_to_data(persons_area, add_black_line=True)
-
+    textlines = extract_text(persons_area)
     persons_id = find_ids_in_textlines(textlines)
+
     persons_names = find_names_in_textlines(textlines)
-    
-    if not persons_id:
-        textlines = split_lines_to_data(persons_area, add_black_line=False)
-        persons_id = find_ids_in_textlines(textlines)
-        persons_names = max(find_names_in_textlines(textlines), persons_names, key=lambda x: len(''.join(x)))
-    
-    if not persons_id:
-        textlines = split_lines_to_data(persons_area[:60, :250], add_black_line=True, config='')
-        persons_id = find_ids_in_textlines(textlines)
+    # get_name_surname_when_TZ_on_same_line(textlines, len(persons_id))
 
-    if not persons_id or not persons_names:
-        textlines = split_lines_to_data(preprocessed(persons_area), add_black_line=False, config='')
-        persons_id = find_ids_in_textlines(textlines)
-        persons_names = max(find_names_in_textlines(textlines), persons_names, key=lambda x: len(''.join(x)))
-
-    person_data = []
-
-    for _id, name in itertools.zip_longest(persons_id, persons_names):
-        person_data.append({
-            'id': _id,
-            'name': name
-        })
-    first_person_id, first_person_name = None, None
-    second_person_id, second_person_name = None, None
-    persons_count = 0
-    if len(person_data) > 0:
-        first_person_id = person_data[0]['id']
-        first_person_name = person_data[0]['name']
-        persons_count = 1
-        # first_person_name_list = first_person_name[::-1].split()
-    if len(person_data) > 1:
-        second_person_id = person_data[1]['id']
-        second_person_name = person_data[1]['name']
-        persons_count = 2
+    get_name_surname_when_TZ_on_next_line(textlines, len(persons_id))
+    #
+    # person_data = []
+    #
+    # #persons_names = get_name_surname_when_TZ_on_same_line(textlines, len(persons_id))
+    # # for el in persons_names:
+    # #     print(el)
+    # # for _id, name in itertools.zip_longest(persons_id, persons_names):
+    # #     person_data.append({
+    # #         'id': _id,
+    # #         'name': name
+    # #     })
+    # first_person_id, first_person_name = None, None
+    # second_person_id, second_person_name = None, None
+    # persons_count = 0
+    # if len(person_data) > 0:
+    #     first_person_id = person_data[0]['id']
+    #     first_person_name = person_data[0]['name']
+    #     persons_count = 1
+    #     # first_person_name_list = first_person_name[::-1].split()
+    # if len(person_data) > 1:
+    #     second_person_id = person_data[1]['id']
+    #     second_person_name = person_data[1]['name']
+    #     persons_count = 2
 
 
 
