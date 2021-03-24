@@ -185,7 +185,7 @@ def main():
         cheques_path = [p for p in cheques_path if p.split('.')[-1] == 'jpg']
         cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
         # cheques_path = [cheques_path[i] for i in _ids_in_middle]
-        for name in cheques_path[40:]:
+        for name in cheques_path[7:]:
             name = cheque_dir + name
             data, img = parse_cheque_by_imgpath(name, return_cropped=True)
             check_data(data,

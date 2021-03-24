@@ -7,6 +7,7 @@ import numpy as np
 from pprint import pprint
 from typing import List
 import itertools
+from time import time
 
 def _find_line_of_numbers(data):
     lines = []
@@ -21,13 +22,16 @@ def _find_line_of_numbers(data):
         return []
     return lines
 
+def textline_as_string(textline):
+    return ''.join(sum((i['text'] for i in textline), []))
+
 def get_line_of_numbers(img):
-    config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
 
     # draw_and_show_boxes(img, 'eng+heb', config)
     # cv2.waitKey()
     # cv2.destroyAllWindows()
-    data = pytesseract.image_to_data(img, output_type='dict', config= config, lang='eng+heb')
+    config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
+    data = pytesseract.image_to_data(img, output_type='dict', config= config, lang='heb')
 
     number_indxs = _find_line_of_numbers(data)
     
@@ -133,14 +137,13 @@ def remove_junks(data, max_char_width=15, min_conf=1):
             
             
             
-def split_lines_to_data(persons_area, add_black_line=False, config=''):
+def split_lines_to_data(persons_area, add_black_line=False, config='', list_of_image_lines=None):
     if add_black_line:
         persons_area = cv2.vconcat([persons_area, np.zeros((5, persons_area.shape[1]), 'uint8')])
 
     # draw_and_show_boxes(persons_area)
     
     lines = []
-    config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
 
     # draw_and_show_boxes(persons_area, 'eng+heb', config)
     # cv2.waitKey()
@@ -149,10 +152,14 @@ def split_lines_to_data(persons_area, add_black_line=False, config=''):
     # draw_and_show_boxes(get_text_lines(persons_area)[2], config=config)
     # cv2.waitKey()
     # cv2.destroyAllWindows()
-
-    for img in get_text_lines(persons_area):
+    # if list_of_image_lines is None:
+    #     list_of_image_lines = 
+    config = '--psm 7 hebchars'
+    list_of_image_lines = get_text_lines(persons_area)
+    for img in list_of_image_lines:
+        # _start = time()
         data = pytesseract.image_to_data(img, lang='eng+heb', config=config, output_type='dict')
-        #print(data)
+        # print(time() - _start)
         cdata = remove_junks(data)
         # print(data['text'], cdata['text'])
         lines.append(cdata)
@@ -261,7 +268,7 @@ def find_names_in_textlines(textlines):
     text = ''.join(sum((i['text'] for i in textlines), []))
     
     look_for_TZ_first = \
-        ('ת.ז.' in text or '.ז.' in text or 'תז.' in text or 'ת.ז' in text or 'תז ' in text or ' תז' in text or 'ת.1' in text or 'ת"ז' in text)
+        ('ת.ז.' in text or '.ז.' in text or 'תז.' in text or 'ת.ז' in text or 'תז ' in text or ' תז' in text or 'תז' in text or 'ת.1' in text or 'ת"ז' in text)
     
     queue = [find_names_alone_on_line, find_names_right_from_TZ]
     
@@ -279,19 +286,48 @@ def preprocessed(image):
 
     return out_gray
 
+
+
+def extract_text(img):
+    from time import time
+    _start = time()
+    
+    raw_text = split_lines_to_data(img, add_black_line=False)
+    text_with_black_lines = split_lines_to_data(img, add_black_line=True)
+    text_with_preprocessing = split_lines_to_data(preprocessed(img), add_black_line=False, config='')
+    print(time() - _start)
+    variants = [raw_text, text_with_black_lines, text_with_preprocessing]
+
+    text_with_most_characters = max(variants, key=lambda x: len(textline_as_string(x)))
+    print(raw_text[1]['text'])
+    print(text_with_black_lines[1]['text'])
+    print(text_with_preprocessing[1]['text'])
+    
+    print(textline_as_string(raw_text))
+    print(textline_as_string(text_with_black_lines))
+    print(textline_as_string(text_with_preprocessing))
+    
+    print(variants.index(text_with_most_characters))
+    return text_with_most_characters
+    
+    
 def parse_persons_data(cropped_gray, lang='Hebrew'):
+    # img = cv2.resize(cropped_gray, (600, 267))
     img = cv2.resize(cropped_gray, (900, 400))
     
     persons_area = img[10:100, 400:-10]
+    # persons_area = img[7:67, 267:-7]
     # cv2.imwrite('test_img.jpeg', persons_area)
     #cv2.imshow('pjl;', persons_area)
     #cv2.waitKey()
-    no_eng_config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
+    # no_eng_config = '--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'
     # persons_area = cv2.fastNlMeansDenoising(persons_area, h=10)#, templateWindowSize=5, searchWindowSize=15)
-    draw_and_show_boxes(persons_area, 'eng+heb', no_eng_config)
-    cv2.waitKey()
+    # draw_and_show_boxes(persons_area, 'eng+heb', no_eng_config)
+    # cv2.waitKey()
     # cv2.destroyAllWindows()
-    textlines = split_lines_to_data(persons_area, add_black_line=False)
+    extract_text(persons_area)
+    
+    textlines = split_lines_to_data(persons_area, add_black_line=True)
 
     persons_id = find_ids_in_textlines(textlines)
     persons_names = find_names_in_textlines(textlines)
