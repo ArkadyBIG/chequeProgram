@@ -152,7 +152,7 @@ def split_lines_to_data(persons_area, add_black_line=False, config=''):
     
     lines = []
 
-    #
+
     # draw_and_show_boxes(persons_area, 'eng+heb', config)
     # cv2.waitKey()
     # cv2.destroyAllWindows()
@@ -164,8 +164,8 @@ def split_lines_to_data(persons_area, add_black_line=False, config=''):
     config = '--psm 7 hebchars'
     list_of_image_lines = get_text_lines(persons_area)
     for img in list_of_image_lines:
-        # draw_and_show_boxes(img, 'eng+heb', config)
-        # cv2.waitKey()
+        draw_and_show_boxes(img, 'eng+heb', config)
+        cv2.waitKey()
         # # _start = time()
         data = pytesseract.image_to_data(img, lang='eng+heb', config=config, output_type='dict')
         #print(data)
@@ -224,10 +224,7 @@ def find_ids_left_from_TZ(textlines):
                     elif 'ה' in word:
                         left, right = word.split('ה')[:2]
                     ids.append(find_id_in_word(right))
-
-    ids_list = [i for i in ids if i]
-    ids_list_without_dublicates = sorted(set(ids_list), key=ids_list.index)
-    return ids_list_without_dublicates[:2]
+    return [i for i in ids if i][:2]
                         
                     
 def find_ids_alone_on_line(textlines):
@@ -235,15 +232,13 @@ def find_ids_alone_on_line(textlines):
     for line in textlines[:3]:
         for word in line['text']:
             ids.append(find_id_in_word(word))
-    ids_list = list(filter(None, ids))
-    ids_list_without_dublicates = sorted(set(ids_list), key=ids_list.index)
-    return ids_list_without_dublicates[:2]
+
+    return list(filter(None, ids))[:2]
 
 
 
 def find_ids_in_textlines(textlines: List[List[str]]):
     ids = find_ids_left_from_TZ(textlines)
-
 
     if not ids:
         ids = find_ids_alone_on_line(textlines)
@@ -283,14 +278,12 @@ def find_names_alone_on_line(textlines):
     return [remove_not_letters(n) for n in names[:2]]
 def TZ_in_textline(textline):
     for word in textline:
-        # if len(word) <= 3:
-        #     for pattern in {'ז', 'ת'}:
-        #         if pattern in word:
-        #             return True
-        for pattern in {'ת.ז.', '.ז.' , 'תז.' , 'ת.ז' , 'תז ' , ' תז' , 'תז' , 'ת.1' , 'ת"ז' }:
+        for pattern in {'ת.ז.', '.ז.' , 'תז.' , 'ת.ז' , 'תז ' , ' תז' , 'תז' , 'ת.1' , 'ת"ז' , }:
             if pattern in word:
                 return True
     return False
+    # return ('ת.ז.' in text or '.ז.' in text or 'תז.' in text or 'ת.ז' in text or 'תז ' in text or ' תז' in text or 'תז' in text or 'ת.1' in text or 'ת"ז' in text or  'תז' in text )
+
 
 def names_to_right_from_TZ(textlines):
     for line in textlines:
@@ -499,12 +492,6 @@ def extract_text(img):
     text_with_most_characters = max(variants, key=lambda x: len(textline_as_string(x)))
     return text_with_most_characters
 
-# def concatenate_small_words(textlines):
-#     for line in textlines:
-#         new_line = []
-#         line = line['text']
-#         ['asdasd', 'a', 'b', 'sdgfdg']
-#         ['sdfds', 'abo', 'fdsf']
 
 def  parse_persons_data(cropped_gray, lang='Hebrew'):
     img = cv2.resize(cropped_gray, (900, 400))
@@ -530,7 +517,6 @@ def  parse_persons_data(cropped_gray, lang='Hebrew'):
     # print(persons_id)
     # get_name_surname_when_TZ_on_next_line(textlines, len(persons_id))
     name_surname_tuple = find_name_with_TZ(textlines, len(persons_id))
-    # textlines = concatinate_small_words(textlines)
     # person_data = []
     #
     # #persons_names = get_name_surname_when_TZ_on_same_line(textlines, len(persons_id))

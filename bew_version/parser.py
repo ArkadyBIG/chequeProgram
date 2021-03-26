@@ -14,8 +14,7 @@ cl = Classificator(DESCRIPTORS_PATH)
 def parse(img, points=None, need_sort=False, return_cropped=False):
     if points:
         img = crop(img, points, need_sort)
-        # cv2.imshow('', img)
-        # cv2.waitKey()
+
     _type = cl.match(img)
     data = cheque_parsers[_type].parse(img)
     if return_cropped:

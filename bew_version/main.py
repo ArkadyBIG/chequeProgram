@@ -33,6 +33,3 @@ if __name__ == '__main__':
 
     data = parse_cheque_by_imgpath(path_to_image, path_to_json)
     pprint(data)
-    # _list = [2, 2, 3]
-    # [3, 2]
-    #
