@@ -178,7 +178,7 @@ def main():
     _ids_in_middle  = [1, 26, 44]
     if 1:
         import os
-        cheque_dir = 'test_photos/'
+        cheque_dir = 'ch_photos/'
         # cheque_dir = 'cheques_to_test_3/'
         
         cheques_path = os.listdir(cheque_dir)

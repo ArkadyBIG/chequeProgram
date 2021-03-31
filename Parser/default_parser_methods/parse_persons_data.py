@@ -202,7 +202,6 @@ def find_id_in_word(word):
 def find_ids_left_from_TZ(textlines):
     ids = []
     for line in textlines:
-        line = line['text']
         for i, word in enumerate(line):
             if not set(word).isdisjoint('ז1תה'):
                 if 1 <= len(word) < 5:
@@ -233,7 +232,7 @@ def find_ids_left_from_TZ(textlines):
 def find_ids_alone_on_line(textlines):
     ids = []
     for line in textlines[:3]:
-        for word in line['text']:
+        for word in line:
             ids.append(find_id_in_word(word))
     ids_list = list(filter(None, ids))
     ids_list_without_dublicates = sorted(set(ids_list), key=ids_list.index)
@@ -257,7 +256,6 @@ def remove_not_letters(_str):
 def find_names_right_from_TZ(textlines):
     names = []
     for line_index, line in enumerate(textlines):
-        line = line['text']
         names_on_line = []
         for i, word in enumerate(line):
             if not set(word).isdisjoint('ז1תה'):
@@ -277,7 +275,7 @@ def find_names_right_from_TZ(textlines):
 def find_names_alone_on_line(textlines):
     names = []
     for line in textlines[:-2]:
-        text = ' '.join(line['text'])
+        text = ' '.join(line)
         if not any(i.isdigit() for i in text):
             names.append(text)
     return [remove_not_letters(n) for n in names[:2]]
@@ -287,14 +285,14 @@ def TZ_in_textline(textline):
         #     for pattern in {'ז', 'ת'}:
         #         if pattern in word:
         #             return True
-        for pattern in {'ת.ז.', '.ז.' , 'תז.' , 'ת.ז' , 'תז ' , ' תז' , 'תז' , 'ת.1' , 'ת"ז' }:
+        for pattern in {'ת.ז.', '.ז.', 'תז.' , 'ת.ז' , 'תז ' , ' תז' , 'תז' , 'ת.1' , 'ת"ז' }:
             if pattern in word:
                 return True
     return False
 
 def names_to_right_from_TZ(textlines):
     for line in textlines:
-        text = line['text']
+        text = line
         a = 'תז' in text
         if TZ_in_textline(text):
             bad_list = []
@@ -353,12 +351,14 @@ def preprocessed(image):
 def get_name_surname_when_TZ_on_same_line(textlines, num_of_persons):
     names = []
     for line_index, line in enumerate(textlines):
-        line = line['text']
         names_on_line = []
         for i, word in enumerate(line):
-            if not set(word).isdisjoint('ז1תה'):
-                if 1 <= sum(not i.isdigit() for i in set(word)) < 5:
+            for pattern in {'ת.ז.', '.ז.', 'תז.', 'ת.ז', 'תז ', ' תז', 'תז', 'ת.1', 'ת"ז','ת1' }:
+                if pattern in word:
                     name = ' '.join(line[:i])
+            # if not set(word).isdisjoint('ז1תה'):
+            #     if 1 <= sum(not i.isdigit() for i in set(word)) < 5:
+            #         name = ' '.join(line[:i])
 
                     if not any(i.isdigit() for i in name):
                         names_on_line.append(name)
@@ -424,7 +424,7 @@ def two_times_surname(person_name_list):
 def get_name_surname_when_TZ_on_next_line(textlines, num_of_persons):
     names = []
     for line in textlines[:-2]:
-        text = ' '.join(line['text'])
+        text = ' '.join(line)
         if not any(i.isdigit() for i in text):
             names.append(text)
     if not [remove_not_letters(n) for n in names[:2]]:
@@ -486,6 +486,18 @@ def get_name_surname_when_TZ_on_next_line(textlines, num_of_persons):
     # print(second_person_name)
     # print(second_person_surname)
     # print(num_of_persons)
+def score_textline(textline):
+    score = 0
+    for line in textline:
+        if len(line['text']) >= 13:
+            continue
+        score += len(''.join(line['text']))
+    return score
+
+# #
+# def textline_as_string(textline):
+#     return ''.join(sum((i['text'] for i in textline), []))
+
 def extract_text(img):
     from time import time
     _start = time()
@@ -494,9 +506,9 @@ def extract_text(img):
     text_with_black_lines = split_lines_to_data(img, add_black_line=True)
     text_with_preprocessing = split_lines_to_data(preprocessed(img), add_black_line=False, config='')
 
-    variants = [raw_text, text_with_black_lines, text_with_preprocessing]
+    variants = [raw_text, text_with_preprocessing,  text_with_black_lines]
 
-    text_with_most_characters = max(variants, key=lambda x: len(textline_as_string(x)))
+    text_with_most_characters = max(variants, key=lambda x: score_textline(x))
     return text_with_most_characters
 
 # def concatenate_small_words(textlines):
@@ -505,6 +517,28 @@ def extract_text(img):
 #         line = line['text']
 #         ['asdasd', 'a', 'b', 'sdgfdg']
 #         ['sdfds', 'abo', 'fdsf']
+def concatenate_small_words(textlines):
+    new_text = {'text': []}
+    for line in textlines:
+        new_line = []
+        line = line['text']
+        flag = False
+        for i in range(len(line)):
+            if flag:
+                flag = False
+
+            if len(line[i]) < 3 and i + 1 < len(line) and ('1' == line[i + 1] or '1.' == line[i+1]):
+                new_line.append(line[i] + line[i + 1])
+                flag = True
+            elif len(line[i]) < 3 and i + 1 < len(line) and len(line[i+1]) < 3 and ((not any(letter.isdigit() for letter in line[i]) and not any(letter.isdigit() for letter in line[i+1] ) )):
+                new_line.append(line[i]+line[i+1])
+                flag = True
+            else:
+
+                new_line.append(line[i])
+
+        new_text['text'].append(new_line)
+    return new_text
 
 def  parse_persons_data(cropped_gray, lang='Hebrew'):
     img = cv2.resize(cropped_gray, (900, 400))
@@ -512,7 +546,7 @@ def  parse_persons_data(cropped_gray, lang='Hebrew'):
     persons_area = img[10:100, 400:-10]
     # draw_and_show_boxes(persons_area)
     # cv2.waitKey()
-    textlines = extract_text(persons_area)
+    textlines = concatenate_small_words(extract_text(persons_area))['text']
     persons_id = find_ids_in_textlines(textlines)
     if len(persons_id) == 0:
         first_person_id = None
