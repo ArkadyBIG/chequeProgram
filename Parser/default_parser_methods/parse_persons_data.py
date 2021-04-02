@@ -251,7 +251,7 @@ def find_ids_in_textlines(textlines: List[List[str]]):
 
 
 def remove_not_letters(_str):
-    return _str.replace('=', '').replace('/', '').replace('|', '').replace(',', '').replace('ת.ז.', '').replace('.', '').replace('-', '')
+    return _str.replace('=', '').replace('/', '').replace('|', '').replace(',', '').replace('ת.ז.', '').replace('.', '')#.replace('-', '')
 
 
 def find_names_right_from_TZ(textlines):
@@ -326,14 +326,16 @@ def names_to_right_from_TZ(textlines, id_list):
             first_person_names_array = []
             for word in text:
                 if not any(letter.isdigit() for letter in word):
-                    first_person_names_array.append(remove_not_letters(word))
+                    if any(letter.isalpha() for letter in word):
+                        first_person_names_array.append(word)
 
 
         if id_in_textline(text, second_id):
             second_person_names_array = []
             for word in text:
                 if not any(letter.isdigit() for letter in word):
-                    second_person_names_array.append(remove_not_letters(word))
+                    if any(letter.isalpha() for letter in word):
+                        second_person_names_array.append(word)
 
     return first_person_names_array, second_person_names_array
 
@@ -344,22 +346,30 @@ def pattern_in_word(word):
 
     return False
 
-def remove_not_letters_and_TZ(person_list):
+def remove_not_letters_from_word(person_list):
+    new_list = []
+    for word in person_list:
+        word = remove_not_letters(word)
+        if word.strip():
+            new_list.append(word)
+    return new_list
+
+def remove_TZ_from_word(person_list):
     new_list = []
     for word in person_list:
         if not pattern_in_word(word):
-            if word.strip():
-                new_list.append(remove_not_letters(word))
+            new_list.append(word)
     return new_list
-
 
 
 def find_name_with_TZ(textlines, id_list):
     first_person_names_array, second_person_names_array = names_to_right_from_TZ(textlines, id_list)
 
-    second_person_names_list = remove_not_letters_and_TZ(second_person_names_array)
-    first_person_names_list = remove_not_letters_and_TZ(first_person_names_array)
+    second_person_names_list = remove_not_letters_from_word(second_person_names_array)
+    first_person_names_list = remove_not_letters_from_word(first_person_names_array)
     if len(first_person_names_list) > 1:
+        first_person_names_list = remove_TZ_from_word(first_person_names_list)
+        second_person_names_list = remove_TZ_from_word(second_person_names_list)
 
 
 
