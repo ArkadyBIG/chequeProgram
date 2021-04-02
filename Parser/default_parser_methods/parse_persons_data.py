@@ -531,7 +531,7 @@ def get_name_surname_when_TZ_on_next_line(textlines, num_of_persons):
             second_person_surname = None
         #
         if num_of_persons == 2:
-            indx =  two_times_surname(person_name_list)
+            indx = two_times_surname(person_name_list)
             if indx:
                 first_person_list = person_name_list[:indx]
                 first_person_name = ' '.join(first_person_list[1:])
@@ -660,7 +660,7 @@ def  parse_persons_data(cropped_gray, lang='Hebrew'):
     else:
         persons_id = find_ids_in_textlines(textlines)
 
-    print(persons_id)
+
 
     if len(persons_id) == 0:
         first_person_id = None

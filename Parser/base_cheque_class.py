@@ -9,6 +9,7 @@ except ImportError:
     from default_parser_methods.parse_telephone_number import parse_telephone_numbers
 
 from abc import ABC
+from cv2 import cv2
 
 
 class BaseCheque(ABC):
@@ -42,7 +43,19 @@ class BaseCheque(ABC):
         bank_data = cls.parse_bank_details(gray_img)
         telephones = cls.parse_telephone_numbers(gray_img)
         person_data = cls.parse_person_info(gray_img)
-        
+        # if not (bank_data['cheque_num'] or bank_data['account_num'] or bank_data['branch_num'] \
+        #         or person_data['first_person_id'] or person_data['first_person_name'] or person_data['first_person_surname']):
+        #     rotated_img = cv2.rotate(gray_img, cv2.ROTATE_180)
+        #     parse(rotated_img)
+            # cv2.imshow('rotated', rotated_img)
+            # cv2.waitKey()
+            #
+            # bank_data = cls.parse_bank_details(rotated_img)
+            # telephones = cls.parse_telephone_numbers(rotated_img)
+            # person_data = cls.parse_person_info(rotated_img)
+
+
+
         # if match_telephones_with_persons \
         #     and len(person_data) == 1:
         #     telephones['second_telephone_number'] = None

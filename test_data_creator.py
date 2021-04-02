@@ -179,13 +179,13 @@ def main():
     if 1:
         import os
 
-        cheque_dir = 'ch_photos/'
+        cheque_dir = 'more/'
         # cheque_dir = 'cheques_to_test_3/'
         
         cheques_path = os.listdir(cheque_dir)
         print(cheques_path)
         cheques_path = [p for p in cheques_path if p.split('.')[-1] in ('jpg', 'jpeg')]
-        cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
+        # cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
         # cheques_path = [cheques_path[i] for i in _ids_in_middle]
         for name in cheques_path[:]:
             name = cheque_dir + name

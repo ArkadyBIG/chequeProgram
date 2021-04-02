@@ -20,8 +20,7 @@ def draw_and_show_boxes(img, config='--psm 7'):
         color = (255, 0, 0) if b[0].isdigit() and b[5] == '0' else (0, 0, 255)
         _img = cv2.rectangle(
             _img, (int(b[1]), h - int(b[2])), (int(b[3]), h - int(b[4])), color, 1)
-    plt.imshow(_img)
-    plt.show()
+    cv2.imshow(' ', _img)
 
 
 def draw_and_show_rectangle(img, left, top, right, bottom):
@@ -76,6 +75,8 @@ def get_line_of_numbers(img, show_steps, _threshholded=False):
     # plt.show()
     # cv2.waitKey()
     data = pytesseract.image_to_data(preprocessed(img), output_type='dict', lang='eng')
+    # draw_and_show_boxes(preprocessed(img))
+    # cv2.waitKey()
 
     # preprocessed_data = pytesseract.image_to_data(preprocessed(img), output_type='dict', lang='eng')
 
@@ -128,6 +129,8 @@ def crop_numbers(cheque_details, show_steps=False):
 
     # data = pytesseract.image_to_data(cheque_details, output_type='dict', lang='eng')
     # if show_steps: print_img_data(data)
+
+
     number_indxs, data = get_line_of_numbers(cheque_details, show_steps)
 
     if not number_indxs:
@@ -241,10 +244,11 @@ def numbers_split(gaps):
 
 
 def parse_cheque_details_on_numbers(numbers, lang='heb'):
-    data = pytesseract.image_to_data(numbers,
+    data = pytesseract.image_to_data(preprocessed(numbers),
                                      lang=lang,
                                      config='-c tessedit_char_whitelist="0123456789 " --psm 7',
                                      output_type='dict')
+
     text = data['text']
     conf = data['conf']
     text = [''.join(i for i in t if i.isdigit()) for t in text]
@@ -313,7 +317,12 @@ def parse_bank_details(img, show_steps=0, area_to_search=[110, 160, 20, 265]):
     y1, y2, x1, x2 = area_to_search
     cheque_details = img[y1:y2, x1:x2]
 
+    # cv2.imshow(' ', cheque_details)
+    # cv2.waitKey()
+
     numbers = crop_numbers(cheque_details, show_steps)
+    # cv2.imshow(' ', numbers)
+    # cv2.waitKey()
     if numbers is None:
         return {
             'cheque_num': None,
@@ -332,13 +341,17 @@ def parse_bank_details(img, show_steps=0, area_to_search=[110, 160, 20, 265]):
 
     W = numbers.shape[1]
     gaps = get_gaps_positions(blank_positions)
-    numbers, gaps = reduce_extra_gaps_on_image(numbers, gaps, W // 80)
+    # numbers, gaps = reduce_extra_gaps_on_image(numbers, gaps, W // 80)
     
     numbers = cv2.fastNlMeansDenoising(numbers, h=6)
     # plt.imshow(numbers)
     # plt.show()
-    cv2.waitKey()
+    # cv2.waitKey()
+    # cv2.imshow('numbers', numbers)
+    # cv2.waitKey()
     data_Hebrew = parse_cheque_details_on_numbers(numbers, 'Hebrew')
+
+
     data_eng = parse_cheque_details_on_numbers(numbers, 'eng')
     data = get_best_data(data_eng, data_Hebrew)
     # data = data_Hebrew2

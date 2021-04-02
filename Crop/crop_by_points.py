@@ -26,6 +26,7 @@ def get_extreme_points(points) -> np.array:
 
     # find list of distances which contains longest distance(length of big diagonal)
     top1, top2 = ordered_by_y_coord[0], ordered_by_y_coord[1]
+
     distances1 = [np.linalg.norm(top1 - _point) for _point in points]
     distances2 = [np.linalg.norm(top2 - _point) for _point in points]
     distances = (distances1, distances2)[float(max(distances1)) < float(max(distances2))]
