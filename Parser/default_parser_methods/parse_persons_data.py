@@ -32,7 +32,7 @@ def get_line_of_numbers(img):
     # cv2.waitKey()
     # cv2.destroyAllWindows()
     config = '--psm 6 '
-    data = pytesseract.image_to_data(img, output_type='dict', config= config, lang='heb')
+    data = pytesseract.image_to_data(img, output_type='dict', config = config, lang='heb')
 
     number_indxs = _find_line_of_numbers(data)
 
@@ -243,8 +243,6 @@ def find_ids_alone_on_line(textlines):
 
 def find_ids_in_textlines(textlines: List[List[str]]):
     ids = find_ids_left_from_TZ(textlines)
-
-
     if not ids:
         ids = find_ids_alone_on_line(textlines)
     return ids
@@ -626,14 +624,44 @@ def concatenate_small_words(textlines):
         new_text['text'].append(new_line)
     return new_text
 
+
+def extract_id_from_middle(img):
+    config = '--psm 7 hebchars'
+    data = pytesseract.image_to_data(preprocessed(img), lang='eng+heb', config=config, output_type='dict')
+    # print(data)
+    cdata = remove_junks(data)
+
+    return cdata
+
+def check_if_id_found_in_middle(data):
+    text = data['text']
+    for word in text:
+        if len(word) >= 9:
+            return word
+    return False
+
+
+
 def  parse_persons_data(cropped_gray, lang='Hebrew'):
     img = cv2.resize(cropped_gray, (900, 400))
 
     persons_area = img[10:100, 400:-10]
     # draw_and_show_boxes(persons_area)
     # cv2.waitKey()
+    middle_id_area = persons_area[:, :180]
+    # draw_and_show_boxes(preprocessed(middle_id_area), lang='heb+eng')
+    # cv2.waitKey()
     textlines = concatenate_small_words(extract_text(persons_area))['text']
-    persons_id = find_ids_in_textlines(textlines)
+    middle_id = check_if_id_found_in_middle(extract_id_from_middle(middle_id_area))
+
+    if middle_id:
+        persons_id = [middle_id[:9]]
+
+    else:
+        persons_id = find_ids_in_textlines(textlines)
+
+    print(persons_id)
+
     if len(persons_id) == 0:
         first_person_id = None
         second_person_id = None
