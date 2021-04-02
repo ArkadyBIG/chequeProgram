@@ -178,14 +178,16 @@ def main():
     _ids_in_middle  = [1, 26, 44]
     if 1:
         import os
-        cheque_dir = 'ch_photos/'
+
+        cheque_dir = 'more/'
         # cheque_dir = 'cheques_to_test_3/'
         
         cheques_path = os.listdir(cheque_dir)
-        cheques_path = [p for p in cheques_path if p.split('.')[-1] == 'jpg']
-        cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
+        print(cheques_path)
+        cheques_path = [p for p in cheques_path if p.split('.')[-1] in ('jpg', 'jpeg')]
+        # cheques_path = sorted(cheques_path, key=lambda x: int(x.split('.')[0]))
         # cheques_path = [cheques_path[i] for i in _ids_in_middle]
-        for name in cheques_path[7:]:
+        for name in cheques_path[:]:
             name = cheque_dir + name
             data, img = parse_cheque_by_imgpath(name, return_cropped=True)
             check_data(data,
@@ -202,4 +204,59 @@ def main():
 
 
 if __name__ == '__main__':
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     main()

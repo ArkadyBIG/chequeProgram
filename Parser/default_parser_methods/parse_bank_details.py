@@ -12,7 +12,7 @@ def digits_score(text):
 
 
 def draw_and_show_boxes(img, config='--psm 7'):
-    boxes = pytesseract.image_to_boxes(img, lang='eng', config=config)
+    boxes = pytesseract.image_to_boxes(img, lang='eng+heb', config=config)
     _img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     h = img.shape[0]
     for b in boxes.splitlines():
@@ -64,10 +64,21 @@ def _find_line_of_numbers(data):
 
     return number_indxs
 
+def preprocessed(image):
+    se = cv2.getStructuringElement(cv2.MORPH_RECT, (8, 8))
+    bg = cv2.morphologyEx(image, cv2.MORPH_DILATE, se)
+    out_gray = cv2.divide(image, bg, scale=255)
+
+    return out_gray
+
 def get_line_of_numbers(img, show_steps, _threshholded=False):
     # plt.imshow(img)
     # plt.show()
-    data = pytesseract.image_to_data(img, output_type='dict', lang='eng')
+    # cv2.waitKey()
+    data = pytesseract.image_to_data(preprocessed(img), output_type='dict', lang='eng')
+
+    # preprocessed_data = pytesseract.image_to_data(preprocessed(img), output_type='dict', lang='eng')
+
     # data_eng = pytesseract.image_to_data(img, output_type='dict', lang='eng', config='-c tessedit_char_whitelist="0123456789 " --psm 7')
     # todo
     if show_steps:
@@ -79,6 +90,7 @@ def get_line_of_numbers(img, show_steps, _threshholded=False):
         _, _th = cv2.threshold(img, img.mean() * 0.9, 255,
                                cv2.ADAPTIVE_THRESH_GAUSSIAN_C)
         _th = 255 - _th
+
         return get_line_of_numbers(_th, show_steps, True)
     return number_indxs, data
 
@@ -316,7 +328,7 @@ def parse_bank_details(img, show_steps=0, area_to_search=[110, 160, 20, 265]):
     blank_positions = get_blank_positions(middle_slice)
 
     if show_steps:
-        show_blank_positions(numbers, blank_positions)
+        show_blan2k_positions(numbers, blank_positions)
 
     W = numbers.shape[1]
     gaps = get_gaps_positions(blank_positions)
@@ -325,6 +337,7 @@ def parse_bank_details(img, show_steps=0, area_to_search=[110, 160, 20, 265]):
     numbers = cv2.fastNlMeansDenoising(numbers, h=6)
     # plt.imshow(numbers)
     # plt.show()
+    cv2.waitKey()
     data_Hebrew = parse_cheque_details_on_numbers(numbers, 'Hebrew')
     data_eng = parse_cheque_details_on_numbers(numbers, 'eng')
     data = get_best_data(data_eng, data_Hebrew)

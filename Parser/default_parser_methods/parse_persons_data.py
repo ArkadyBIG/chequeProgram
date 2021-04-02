@@ -1,5 +1,5 @@
 
-from cv2 import cv2 
+from cv2 import cv2
 import matplotlib.pyplot as plt
 import pytesseract
 import os
@@ -35,10 +35,10 @@ def get_line_of_numbers(img):
     data = pytesseract.image_to_data(img, output_type='dict', config= config, lang='heb')
 
     number_indxs = _find_line_of_numbers(data)
-    
+
     right_block = []
     left_block = []
-    
+
     for line in number_indxs:
         max_gap = 0
         right_block.append([])
@@ -56,7 +56,7 @@ def get_line_of_numbers(img):
                 break
             right_block[-1].append(index)
             prev_x = data['left'][index]
-        
+
         left_block[-1].extend(line[i:])
     # print(right_block, left_block, data)
     return right_block, left_block, data
@@ -80,20 +80,20 @@ def expand_rectangle(left, top, right, bottom, max_shape, increase=1.5, max_widt
         med = (top + bottom) / 2
         top = int(max(top, med - max_width / 2))
         bottom = int(min(bottom, med + max_width / 2))
-        
+
     return left, top, right, bottom
 
 def get_text_lines(text_img):
     right_block, left_block, data = get_line_of_numbers(text_img)
     if not right_block:
         return []
-    
+
     right_img_slices = []
     for number_indxs in  right_block:
         rect = get_rectangle(data, number_indxs)
         left, top, right, bottom = expand_rectangle(*rect, max_shape=text_img.shape, max_width=25, max_left=350)
         right_img_slices.append(text_img[top :bottom, left:])
-    
+
     left_img_slices = []
     for number_indxs in  left_block:
         if not number_indxs:
@@ -102,9 +102,9 @@ def get_text_lines(text_img):
         left, top, right, bottom = expand_rectangle(*rect, max_shape=text_img.shape, max_width=25)
         # draw_and_show_boxes(text_img[top :bottom, left:right])
         left_img_slices.append(text_img[top :bottom, left:right])
-        
+
     return right_img_slices#, left_img_slices
-    
+
 
 def draw_and_show_boxes(img, lang='eng+heb', config='--psm 6 -c tesseract_white_list=אבבּגדהוזחטיךךּככּלםמןנסעףפפּץצקרשׁשׂתתּ1234567890-'):
     boxes = pytesseract.image_to_boxes(img, lang=lang, config=config)
@@ -141,15 +141,15 @@ def remove_junks(data, max_char_width=15, min_conf=1):
         clear_data['conf' ].append(conf)
         clear_data['left' ].append(left)
     return clear_data
-            
-            
-            
+
+
+
 def split_lines_to_data(persons_area, add_black_line=False, config=''):
     if add_black_line:
         persons_area = cv2.vconcat([persons_area, np.zeros((5, persons_area.shape[1]), 'uint8')])
 
     # draw_and_show_boxes(persons_area)
-    
+
     lines = []
 
     #
@@ -172,7 +172,7 @@ def split_lines_to_data(persons_area, add_black_line=False, config=''):
         cdata = remove_junks(data)
         # print(data['text'], cdata['text'])
         lines.append(cdata)
-        
+
     return lines
 
 def strip_not_digits(word):
@@ -181,14 +181,14 @@ def strip_not_digits(word):
 
     for i, c in enumerate(word):
         if c.isdigit():
-           break 
+           break
     word = word[i:]
     for i, c in enumerate(word[::-1]):
         if c.isdigit():
-           break 
+           break
     return word[:(-i or None)]
 
-    
+
 
 def find_id_in_word(word):
     numbers = strip_not_digits(word)
@@ -197,7 +197,7 @@ def find_id_in_word(word):
 
     if 10 >= len(numbers) >= 8:
         return numbers[:9]
-    return None 
+    return None
 
 def find_ids_left_from_TZ(textlines):
     ids = []
@@ -208,11 +208,12 @@ def find_ids_left_from_TZ(textlines):
                     if i + 1 < len(line):
                         _id = find_id_in_word(line[i + 1])
                         ids.append(_id)
+
                     if i + 2 < len(line):
                         ids.append(find_id_in_word(line[i + 2]))
                     if i - 1 >= 0:
                         ids.append(find_id_in_word(line[i - 1]))
-                        if i - 2  >= 0:
+                        if i - 2 >= 0:
                             ids.append(find_id_in_word(line[i - 2]))
                 elif '1' not in word[:3] and 'ש' not in word:
                     right = ''
@@ -227,8 +228,8 @@ def find_ids_left_from_TZ(textlines):
     ids_list = [i for i in ids if i]
     ids_list_without_dublicates = sorted(set(ids_list), key=ids_list.index)
     return ids_list_without_dublicates[:2]
-                        
-                    
+
+
 def find_ids_alone_on_line(textlines):
     ids = []
     for line in textlines[:3]:
@@ -250,8 +251,8 @@ def find_ids_in_textlines(textlines: List[List[str]]):
 
 
 def remove_not_letters(_str):
-    return _str.replace('=', '').replace('/', '').replace('|', '').replace(',', '').replace('ת.ז.', '').replace('.', '')
-    
+    return _str.replace('=', '').replace('/', '').replace('|', '').replace(',', '').replace('ת.ז.', '').replace('.', '').replace('-', '')
+
 
 def find_names_right_from_TZ(textlines):
     names = []
@@ -261,14 +262,14 @@ def find_names_right_from_TZ(textlines):
             if not set(word).isdisjoint('ז1תה'):
                 if 1 <= sum(not i.isdigit() for i in set(word)) < 5:
                     name = ' '.join(line[:i])
-                    
+
                     numbers = ''.join(i for i in ''.join(line[i:]) if i.isdigit())
-                    
+
                     if not any(i.isdigit() for i in name) and \
                         (len(numbers) > 7 or sum(i.isdigit() for i in word) > 7):
                         names_on_line.append(name)
         if line_index > 0 and names[-1] and not names_on_line:
-            break 
+            break
         names.append(max(names_on_line, default=[], key=len))
     return list({remove_not_letters(i) for i in names if i})[:2]
 
@@ -279,6 +280,7 @@ def find_names_alone_on_line(textlines):
         if not any(i.isdigit() for i in text):
             names.append(text)
     return [remove_not_letters(n) for n in names[:2]]
+
 def TZ_in_textline(textline):
     for word in textline:
         # if len(word) <= 3:
@@ -290,28 +292,102 @@ def TZ_in_textline(textline):
                 return True
     return False
 
-def names_to_right_from_TZ(textlines):
+def id_in_textline(textline, id):
+    if not id:
+        return False
+    for word in textline:
+        if id in word:
+            return True
+    return False
+
+
+def names_to_right_from_TZ(textlines, id_list):
+    if len(id_list) == 2:
+        if id_list[0]:
+            first_id = id_list[0]
+        if id_list[1]:
+            second_id = id_list[1]
+
+    elif len(id_list) == 1:
+        if id_list[0]:
+            first_id = id_list[0]
+            second_id = None
+    else:
+        first_id = None
+        second_id = None
+
+    first_person_names_array = []
+    second_person_names_array = []
     for line in textlines:
         text = line
-        a = 'תז' in text
-        if TZ_in_textline(text):
-            bad_list = []
+
+
+        if id_in_textline(text, first_id):
+            first_person_names_array = []
             for word in text:
-                if any(letter.isalpha() for letter in word):
-                    bad_list.append(word)
+                if not any(letter.isdigit() for letter in word):
+                    first_person_names_array.append(remove_not_letters(word))
 
-            if len(bad_list) > 1:
-                return True
 
-            else:
-                return False
+        if id_in_textline(text, second_id):
+            second_person_names_array = []
+            for word in text:
+                if not any(letter.isdigit() for letter in word):
+                    second_person_names_array.append(remove_not_letters(word))
 
-def find_name_with_TZ(textlines, num_of_persons):
+    return first_person_names_array, second_person_names_array
 
-    if names_to_right_from_TZ(textlines):
-        return get_name_surname_when_TZ_on_same_line(textlines, num_of_persons)
+def pattern_in_word(word):
+    for pattern in {'ת.ז.', '.ז.', 'תז.', 'ת.ז', 'תז ', ' תז', 'תז', 'ת.1', 'ת"ז'}:
+        if pattern in word:
+            return True
+
+    return False
+
+def remove_not_letters_and_TZ(person_list):
+    new_list = []
+    for word in person_list:
+        if not pattern_in_word(word):
+            if word.strip():
+                new_list.append(remove_not_letters(word))
+    return new_list
+
+
+
+def find_name_with_TZ(textlines, id_list):
+    first_person_names_array, second_person_names_array = names_to_right_from_TZ(textlines, id_list)
+
+    second_person_names_list = remove_not_letters_and_TZ(second_person_names_array)
+    first_person_names_list = remove_not_letters_and_TZ(first_person_names_array)
+    if len(first_person_names_list) > 1:
+
+
+
+
+
+        first_person_name = None
+        first_person_surname = None
+        second_person_name = None
+        second_person_surname = None
+
+        if len(id_list) == 1:
+
+            first_person_name = ' '.join(first_person_names_list[1:])
+            first_person_surname = first_person_names_list[0]
+            second_person_name = None
+            second_person_surname = None
+
+
+        elif len(id_list) == 2:
+            first_person_name = ' '.join(first_person_names_list[1:])
+            first_person_surname = first_person_names_list[0]
+
+            second_person_name = ' '.join(second_person_names_list[1:])
+            second_person_surname = second_person_names_list[0]
+
+        return (first_person_name, first_person_surname), (second_person_name, second_person_surname)
     else:
-        return get_name_surname_when_TZ_on_next_line(textlines, num_of_persons)
+        return get_name_surname_when_TZ_on_next_line(textlines, len(id_list))
 
 
 
@@ -328,12 +404,12 @@ def find_name_with_TZ(textlines, num_of_persons):
 
 def find_names_in_textlines(textlines):
     text = ''.join(sum((i['text'] for i in textlines), []))
-    
+
     look_for_TZ_first = \
         ('ת.ז.' in text or '.ז.' in text or 'תז.' in text or 'ת.ז' in text or 'תז ' in text or ' תז' in text or 'תז' in text or 'ת.1' in text or 'ת"ז' in text)
-    
+
     queue = [find_names_alone_on_line, find_names_right_from_TZ]
-    
+
     names = queue[look_for_TZ_first](textlines)
     if not names:
         names = queue[not look_for_TZ_first](textlines)
@@ -353,7 +429,7 @@ def get_name_surname_when_TZ_on_same_line(textlines, num_of_persons):
     for line_index, line in enumerate(textlines):
         names_on_line = []
         for i, word in enumerate(line):
-            for pattern in {'ת.ז.', '.ז.', 'תז.', 'ת.ז', 'תז ', ' תז', 'תז', 'ת.1', 'ת"ז','ת1' }:
+            for pattern in {'ת.ז.', '.ז.', 'תז.', 'ת.ז', 'תז ', ' תז', 'תז', 'ת.1', 'ת"ז', 'ת1' }:
                 if pattern in word:
                     name = ' '.join(line[:i])
             # if not set(word).isdisjoint('ז1תה'):
@@ -542,7 +618,7 @@ def concatenate_small_words(textlines):
 
 def  parse_persons_data(cropped_gray, lang='Hebrew'):
     img = cv2.resize(cropped_gray, (900, 400))
-    
+
     persons_area = img[10:100, 400:-10]
     # draw_and_show_boxes(persons_area)
     # cv2.waitKey()
@@ -563,7 +639,7 @@ def  parse_persons_data(cropped_gray, lang='Hebrew'):
     # get_name_surname_when_TZ_on_same_line(textlines, len(persons_id))
     # print(persons_id)
     # get_name_surname_when_TZ_on_next_line(textlines, len(persons_id))
-    name_surname_tuple = find_name_with_TZ(textlines, len(persons_id))
+    name_surname_tuple = find_name_with_TZ(textlines, persons_id)
     # textlines = concatinate_small_words(textlines)
     # person_data = []
     #
